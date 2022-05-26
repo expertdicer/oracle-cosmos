@@ -1,0 +1,5 @@
+cargo.lock
+target
+test
+contract/oracle/artifacts
+contract/oracle/target

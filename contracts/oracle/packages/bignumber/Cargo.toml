@@ -1,0 +1,19 @@
+[package]
+name = "cosmwasm-bignumber"
+version = "2.3.0"
+authors = ["expertdicer@gmail.com"]
+edition = "2018"
+description = "Bignumber library for cosmwasm project"
+license = "Apache-2.0"
+
+[features]
+backtraces = ["cosmwasm-std/backtraces"]
+
+[dependencies]
+cosmwasm-std = "1.0.0"
+bigint = "4"
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+cosmwasm-schema = "1.0.0"
