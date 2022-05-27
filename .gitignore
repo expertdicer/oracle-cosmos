@@ -1,5 +1,6 @@
 cargo.lock
 target
 test
+artifacts
 contract/oracle/artifacts
 contract/oracle/target
