@@ -187,7 +187,7 @@ pub fn execute(
                 deps,
                 env,
                 info,
-                api.addr_validate(&borrower)?,
+                api.human_address(&CanonicalAddr(to_binary(&borrower)?))?,
                 prev_balance,
             )
         }
@@ -426,7 +426,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         } => to_binary(&query_borrower_info(
             deps,
             env,
-            deps.api.addr_validate(&borrower)?,
+            deps.api.human_address(&CanonicalAddr(to_binary(&borrower)?))?,
             block_height,
         )?),
         QueryMsg::BorrowerInfos { start_after, limit } => to_binary(&query_borrower_infos(
