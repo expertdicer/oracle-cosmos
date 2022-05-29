@@ -13,7 +13,7 @@ use crate::state::{read_config, read_state, store_config, store_state, Config, S
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps,
+    attr, from_binary, to_binary, Addr, BankMsg, Binary, CanonicalAddr, HumanAddr, Coin, CosmosMsg, Deps,
     DepsMut, Env, MessageInfo, Reply, Response, StdError, StdResult, SubMsg, Uint128, WasmMsg,
 };
 use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse};
@@ -95,11 +95,11 @@ pub fn instantiate(
                     ),
                     decimals: 6u8,
                     initial_balances: vec![Cw20Coin {
-                        address: env.contract.address.to_string(),
+                        address: CanonicalAddr(env.contract.address.to_string()),
                         amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
                     }],
                     mint: Some(MinterResponse {
-                        minter: env.contract.address.to_string(),
+                        minter: HumanAddr(env.contract.address.to_string()),
                         cap: None,
                     }),
                 })?,
