@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cw20::Cw20ReceiveMsg;
+use cw20::{Cw20Coin, MinterResponse};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -17,6 +18,16 @@ pub struct InstantiateMsg {
     pub anc_emission_rate: Decimal256,
     /// Maximum allowed borrow rate over deposited stable balance
     pub max_borrow_factor: Decimal256,
+}
+
+/// TokenContract InstantiateMsg
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct TokenInstantiateMsg {
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
+    pub initial_balances: Vec<Cw20Coin>,
+    pub mint: Option<MinterResponse>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -1,10 +1,11 @@
 [package]
-name = "moneymarket"
-version = "0.3.1"
-authors = ["Terraform Labs, PTE."]
+name = "anchor-token"
+version = "0.3.0"
+authors = ["expertdicer@gmail.com"]
 edition = "2018"
-description = "Common helpers for other moneymarket specs"
+description = "Common helpers for other anchor-token specs"
 license = "Apache-2.0"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
@@ -15,16 +16,15 @@ backtraces = ["cosmwasm-std/backtraces"]
 [dependencies]
 cw20 = "0.5.0"
 cosmwasm-bignumber = {path = "../bignumber", version = "2.3.0"}
-cosmwasm-storage = "0.13.2"
-cosmwasm-std = "0.13.2"
+cosmwasm-std = "0.13.2" 
+cosmwasm-storage = { version = "0.13.2" }
+terra-cosmwasm = "2.2.0"
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 
-[dev-dependencies]
-cosmwasm-schema = "0.13.2"
-
 [profile.dev]
-overflow-checks = true
+overflow-checks = true 
 
 [profile.release]
 overflow-checks = true
+ 

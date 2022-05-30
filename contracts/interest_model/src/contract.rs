@@ -5,7 +5,7 @@ use cosmwasm_std::entry_point;
 
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, StdResult, CanonicalAddr, InitResponse};
 use crate::common::optional_addr_validate;
 use crate::msgs::{
     BorrowRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
@@ -17,11 +17,11 @@ pub fn instantiate(
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
-) -> StdResult<Response> {
+) -> StdResult<InitResponse, ContractError> {
     store_config(
         deps.storage,
         &Config {
-            owner: deps.api.addr_canonicalize(&msg.owner)?,
+            owner: deps.api.canonical_address(&msg.owner)?,
             base_rate: msg.base_rate,
             interest_multiplier: msg.interest_multiplier,
         },

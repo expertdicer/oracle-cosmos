@@ -36,7 +36,7 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let initial_deposit = info
-        .funds
+        .sent_funds
         .iter()
         .find(|c| c.denom == msg.stable_denom)
         .map(|c| c.amount)
@@ -83,10 +83,9 @@ pub fn instantiate(
     Ok(
         Response::new().add_submessages(vec![SubMsg::reply_on_success(
             CosmosMsg::Wasm(WasmMsg::Instantiate {
-                admin: None,
                 code_id: msg.aterra_code_id,
-                funds: vec![],
-                label: "".to_string(),
+                send: vec![],
+                label: Some("".to_string()),
                 msg: to_binary(&TokenInstantiateMsg {
                     name: format!("Anchor Terra {}", msg.stable_denom[1..].to_uppercase()),
                     symbol: format!(
@@ -95,7 +94,7 @@ pub fn instantiate(
                     ),
                     decimals: 6u8,
                     initial_balances: vec![Cw20Coin {
-                        address: CanonicalAddr(env.contract.address.to_string()),
+                        address: CanonicalAddr(to_binary(&env.contract.address)?),
                         amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
                     }],
                     mint: Some(MinterResponse {

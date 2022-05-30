@@ -1,5 +1,5 @@
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{CanonicalAddr, Deps, StdError, StdResult};
+use cosmwasm_std::{to_binary, CanonicalAddr,HumanAddr, Deps, StdError, StdResult};
 
 pub type Token = (CanonicalAddr, Uint256);
 pub type TokenHuman = (String, Uint256);
@@ -129,7 +129,7 @@ impl TokensToHuman for Tokens {
     fn to_human(&self, deps: Deps) -> StdResult<TokensHuman> {
         let collaterals: TokensHuman = self
             .iter()
-            .map(|c| Ok((deps.api.addr_humanize(&c.0)?.to_string(), c.1)))
+            .map(|c| Ok((deps.api.human_address(&c.0)?.to_string(), c.1)))
             .collect::<StdResult<TokensHuman>>()?;
         Ok(collaterals)
     }
@@ -139,7 +139,7 @@ impl TokensToRaw for TokensHuman {
     fn to_raw(&self, deps: Deps) -> StdResult<Tokens> {
         let collaterals: Tokens = self
             .iter()
-            .map(|c| Ok((deps.api.addr_canonicalize(c.0.as_str())?, c.1)))
+            .map(|c| Ok((deps.api.canonical_address(&HumanAddr(c.0.to_string()))?, c.1)))
             .collect::<StdResult<Tokens>>()?;
         Ok(collaterals)
     }
