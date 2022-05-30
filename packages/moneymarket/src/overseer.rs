@@ -3,20 +3,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::tokens::TokensHuman;
 use cosmwasm_bignumber::{Decimal256, Uint256};
+use cosmwasm_std::HumanAddr;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct InstantiateMsg {
     /// Initial owner address
-    pub owner_addr: String,
+    pub owner_addr: HumanAddr,
     /// Oracle contract address for collateral tokens
-    pub oracle_contract: String,
+    pub oracle_contract: HumanAddr,
     /// Market contract address to receive missing interest buffer
-    pub market_contract: String,
+    pub market_contract: HumanAddr,
     /// Liquidation model contract address to compute liquidation amount
-    pub liquidation_contract: String,
+    pub liquidation_contract: HumanAddr,
     /// Collector contract address which is purchasing ANC token
-    pub collector_contract: String,
+    pub collector_contract: HumanAddr,
     /// The base denomination used when fetching oracle price,
     /// reward distribution, and borrow
     pub stable_denom: String,
@@ -48,20 +49,6 @@ pub struct InstantiateMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct MigrateMsg {
-    /// Period of time in blocks when rate is evaluated/changed
-    pub dyn_rate_epoch: u64,
-    /// Maximum allowed rate change per epoch
-    pub dyn_rate_maxchange: Decimal256,
-    /// Margin to define expectation of rate increase
-    pub dyn_rate_yr_increase_expectation: Decimal256,
-    pub dyn_rate_current: Decimal256,
-    pub dyn_rate_min: Decimal256,
-    pub dyn_rate_max: Decimal256,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
 #[allow(clippy::large_enum_variant)]
 pub enum ExecuteMsg {
     ////////////////////
@@ -70,9 +57,9 @@ pub enum ExecuteMsg {
 
     /// Update Configs
     UpdateConfig {
-        owner_addr: Option<String>,
-        oracle_contract: Option<String>,
-        liquidation_contract: Option<String>,
+        owner_addr: Option<HumanAddr>,
+        oracle_contract: Option<HumanAddr>,
+        liquidation_contract: Option<HumanAddr>,
         threshold_deposit_rate: Option<Decimal256>,
         target_deposit_rate: Option<Decimal256>,
         buffer_distribution_factor: Option<Decimal256>,
@@ -87,17 +74,17 @@ pub enum ExecuteMsg {
     },
     /// Create new custody contract for the given collateral token
     Whitelist {
-        name: String,             // bAsset name
-        symbol: String,           // bAsset symbol
-        collateral_token: String, // bAsset token contract
-        custody_contract: String, // bAsset custody contract
-        max_ltv: Decimal256,      // Loan To Value ratio
+        name: String,                // bAsset name
+        symbol: String,              // bAsset symbol
+        collateral_token: HumanAddr, // bAsset token contract
+        custody_contract: HumanAddr, // bAsset custody contract
+        max_ltv: Decimal256,         // Loan To Value ratio
     },
     /// Update registered whitelist info
     UpdateWhitelist {
-        collateral_token: String,         // bAsset token contract
-        custody_contract: Option<String>, // bAsset custody contract
-        max_ltv: Option<Decimal256>,      // Loan To Value ratio
+        collateral_token: HumanAddr,         // bAsset token contract
+        custody_contract: Option<HumanAddr>, // bAsset custody contract
+        max_ltv: Option<Decimal256>,         // Loan To Value ratio
     },
 
     /// Claims all staking rewards from the bAsset contracts
@@ -133,20 +120,34 @@ pub enum ExecuteMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+pub struct MigrateMsg {
+    /// Period of time in blocks when rate is evaluated/changed
+    pub dyn_rate_epoch: u64,
+    /// Maximum allowed rate change per epoch
+    pub dyn_rate_maxchange: Decimal256,
+    /// Margin to define expectation of rate increase
+    pub dyn_rate_yr_increase_expectation: Decimal256,
+    pub dyn_rate_current: Decimal256,
+    pub dyn_rate_min: Decimal256,
+    pub dyn_rate_max: Decimal256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     Config {},
     EpochState {},
     DynrateState {},
     Whitelist {
-        collateral_token: Option<String>,
-        start_after: Option<String>,
+        collateral_token: Option<HumanAddr>,
+        start_after: Option<HumanAddr>,
         limit: Option<u32>,
     },
     Collaterals {
         borrower: String,
     },
     AllCollaterals {
-        start_after: Option<String>,
+        start_after: Option<HumanAddr>,
         limit: Option<u32>,
     },
     BorrowLimit {
