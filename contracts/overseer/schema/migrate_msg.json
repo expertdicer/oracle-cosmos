@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MigrateMsg",
+  "type": "object",
+  "required": [
+    "dyn_rate_current",
+    "dyn_rate_epoch",
+    "dyn_rate_max",
+    "dyn_rate_maxchange",
+    "dyn_rate_min",
+    "dyn_rate_yr_increase_expectation"
+  ],
+  "properties": {
+    "dyn_rate_current": {
+      "$ref": "#/definitions/Decimal256"
+    },
+    "dyn_rate_epoch": {
+      "description": "Period of time in blocks when rate is evaluated/changed",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "dyn_rate_max": {
+      "$ref": "#/definitions/Decimal256"
+    },
+    "dyn_rate_maxchange": {
+      "description": "Maximum allowed rate change per epoch",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Decimal256"
+        }
+      ]
+    },
+    "dyn_rate_min": {
+      "$ref": "#/definitions/Decimal256"
+    },
+    "dyn_rate_yr_increase_expectation": {
+      "description": "Margin to define expectation of rate increase",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Decimal256"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "Decimal256": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal256(1_000_000_000_000_000_000) == 1.0 The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    }
+  }
+}
