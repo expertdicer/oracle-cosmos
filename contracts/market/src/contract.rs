@@ -14,7 +14,7 @@ use crate::state::{read_config, read_state, store_config, store_state, Config, S
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, from_binary, to_binary, HumanAddr, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps,
-    DepsMut, Env, MessageInfo, StdError, StdResult, Uint128, WasmMsg,
+    DepsMut, Env, MessageInfo, StdError, StdResult, Uint128, WasmMsg, InitResponse, HandleResponse, MigrateResponse
 };
 use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse};
 use moneymarket::interest_model::BorrowRateResponse;
@@ -27,12 +27,12 @@ use protobuf::Message;
 pub const INITIAL_DEPOSIT_AMOUNT: u128 = 1000000;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate(
+pub fn init(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<(), ContractError> {
+) -> Result<InitResponse, ContractError> {
     let initial_deposit = info
         .sent_funds
         .iter()
@@ -107,12 +107,12 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
+pub fn handle(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
         ExecuteMsg::RegisterContracts {
@@ -219,7 +219,7 @@ pub fn receive_cw20(
     env: Env,
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let contract_addr = info.sender;
     match from_binary(&cw20_msg.msg.unwrap()) {
         Ok(Cw20HookMsg::RedeemStable {}) => {
@@ -235,7 +235,7 @@ pub fn receive_cw20(
     }
 }
 
-pub fn register_aterra(deps: DepsMut, token_addr: HumanAddr) -> Result<(), ContractError> {
+pub fn register_aterra(deps: DepsMut, token_addr: HumanAddr) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     if config.aterra_contract != CanonicalAddr::from(vec![]) {
         return Err(ContractError::Unauthorized {});
@@ -244,7 +244,15 @@ pub fn register_aterra(deps: DepsMut, token_addr: HumanAddr) -> Result<(), Contr
     config.aterra_contract = deps.api.canonical_address(&token_addr)?;
     store_config(deps.storage, &config)?;
 
-    Ok(Response::new().add_attributes(vec![attr("aterra", token_addr)]))
+    let res = HandleResponse {
+        attributes: vec![
+            attr("action", "register_aterra"),
+            attr("aterra_contract", token_addr),
+        ],
+        messages: vec![],
+        data: None,
+    };
+    Ok(res)
 }
 
 pub fn register_contracts(
@@ -254,7 +262,7 @@ pub fn register_contracts(
     distribution_model: HumanAddr,
     collector_contract: HumanAddr,
     distributor_contract: HumanAddr,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     if config.overseer_contract != CanonicalAddr::from(vec![])
         || config.interest_model != CanonicalAddr::from(vec![])
@@ -272,7 +280,19 @@ pub fn register_contracts(
     config.distributor_contract = deps.api.canonical_address(&distributor_contract)?;
     store_config(deps.storage, &config)?;
 
-    Ok(Response::default())
+    let res = HandleResponse {
+        attributes: vec![
+            attr("action", "register_contracts"),
+            attr("overseer_contract", overseer_contract),
+            attr("interest_model", interest_model),
+            attr("distribution_model", distribution_model),
+            attr("collector_contract", collector_contract),
+            attr("distributor_contract", distributor_contract),
+        ],
+        messages: vec![],
+        data: None,
+    };
+    Ok(res)
 }
 
 pub fn update_config(
@@ -283,7 +303,7 @@ pub fn update_config(
     interest_model: Option<HumanAddr>,
     distribution_model: Option<HumanAddr>,
     max_borrow_factor: Option<Decimal256>,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
 
     // permission check
@@ -314,7 +334,11 @@ pub fn update_config(
     }
 
     store_config(deps.storage, &config)?;
-    Ok(Response::new().add_attributes(vec![attr("action", "update_config")]))
+    Ok(HandleResponse {
+        attributes: (vec![attr("action", "update_config")]),
+        messages: vec![],
+        data: None,
+    })
 }
 
 pub fn execute_epoch_operations(
@@ -325,7 +349,7 @@ pub fn execute_epoch_operations(
     target_deposit_rate: Decimal256,
     _threshold_deposit_rate: Decimal256,
     distributed_interest: Uint256,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
     if config.overseer_contract != deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? {
         return Err(ContractError::Unauthorized {});
@@ -375,6 +399,7 @@ pub fn execute_epoch_operations(
         state.total_reserves = state.total_reserves - Decimal256::from_uint256(total_reserves);
 
         vec![CosmosMsg::Bank(BankMsg::Send {
+            from_address: env.contract.address,  // fixme
             to_address: deps
                 .api
                 .human_address(&config.collector_contract)?,
@@ -391,12 +416,16 @@ pub fn execute_epoch_operations(
     };
 
     store_state(deps.storage, &state)?;
-
-    Ok(Response::new().add_messages(messages).add_attributes(vec![
-        attr("action", "execute_epoch_operations"),
-        attr("total_reserves", total_reserves),
-        attr("anc_emission_rate", state.anc_emission_rate.to_string()),
-    ]))
+    let res = HandleResponse {
+        attributes: vec![
+            attr("action", "execute_epoch_operations"),
+            attr("total_reserves", total_reserves),
+            attr("anc_emission_rate", state.anc_emission_rate.to_string()),
+        ],
+        messages: vec![],
+        data: None,
+    };
+    Ok(res)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -555,6 +584,6 @@ pub fn query_epoch_state(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<()> {
-    Ok(())
+pub fn migrate(_deps: DepsMut, _env: Env, info: MessageInfo, _msg: MigrateMsg) -> StdResult<MigrateResponse> {
+    Ok(MigrateResponse::default())
 }

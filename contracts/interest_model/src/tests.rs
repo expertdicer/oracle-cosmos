@@ -1,7 +1,7 @@
-use crate::contract::{execute, instantiate, query};
+use crate::contract::{handle, init, query};
 use crate::error::ContractError;
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::from_binary;
+use cosmwasm_std::{from_binary, HumanAddr};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use crate::msgs::{
     BorrowRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
@@ -9,10 +9,10 @@ use crate::msgs::{
 
 #[test]
 fn proper_initialization() {
-    let mut deps = mock_dependencies();
+    let mut deps = mock_dependencies(&[]);
 
     let msg = InstantiateMsg {
-        owner: "owner0000".to_string(),
+        owner: Some(HumanAddr::from("owner0000")),
         base_rate: Decimal256::percent(10),
         interest_multiplier: Decimal256::percent(10),
     };
@@ -20,7 +20,7 @@ fn proper_initialization() {
     let info = mock_info("addr0000", &[]);
 
     // we can just call .unwrap() to assert this was a success
-    let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
     // it worked, let's query the state
@@ -53,26 +53,26 @@ fn proper_initialization() {
 
 #[test]
 fn update_config() {
-    let mut deps = mock_dependencies();
+    let mut deps = mock_dependencies(&[]);
 
     let msg = InstantiateMsg {
-        owner: "owner0000".to_string(),
+        owner: Some(HumanAddr::from("owner0000")),
         base_rate: Decimal256::percent(10),
         interest_multiplier: Decimal256::percent(10),
     };
 
     let info = mock_info("addr0000", &[]);
-    let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     // update owner
     let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner: Some("owner0001".to_string()),
+        owner: Some(HumanAddr::from("owner0001")),
         base_rate: None,
         interest_multiplier: None,
     };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
     // it worked, let's query the state
@@ -90,7 +90,7 @@ fn update_config() {
         interest_multiplier: Some(Decimal256::percent(1)),
     };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg);
+    let res = handle(deps.as_mut(), mock_env(), info, msg);
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("Must return unauthorized error"),

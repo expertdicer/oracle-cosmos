@@ -474,6 +474,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std 0.13.2",
  "cosmwasm-storage",
+ "moneymarket",
  "schemars 0.7.6",
  "serde",
  "thiserror",

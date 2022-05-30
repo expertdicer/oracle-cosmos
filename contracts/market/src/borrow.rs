@@ -2,7 +2,7 @@ use anchor_token::distributor::ExecuteMsg as FaucetExecuteMsg;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, to_binary, HumanAddr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    StdResult, WasmMsg,
+    StdResult, WasmMsg, HandleResponse
 };
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{BorrowerInfoResponse, BorrowerInfosResponse};
@@ -22,7 +22,7 @@ pub fn borrow_stable(
     info: MessageInfo,
     borrow_amount: Uint256,
     to: Option<HumanAddr>,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     let mut state: State = read_state(deps.storage)?;
@@ -70,7 +70,7 @@ pub fn borrow_stable(
     Ok(Response::new()
         .add_message(CosmosMsg::Bank(BankMsg::Send {
             from_address: env.contract.address,
-            to_address: to.unwrap_or_else(|| borrower.clone()).to_string(),
+            to_address: to.unwrap_or_else(|| borrower.clone()),
             amount: vec![deduct_tax(
                 deps.as_ref(),
                 Coin {
@@ -92,7 +92,7 @@ pub fn repay_stable_from_liquidation(
     info: MessageInfo,
     borrower: HumanAddr,
     prev_balance: Uint256,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
     if config.overseer_contract != deps.api.canonical_address(&info.sender)? {
         return Err(ContractError::Unauthorized {});
@@ -116,7 +116,7 @@ pub fn repay_stable_from_liquidation(
     repay_stable(deps, env, info)
 }
 
-pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<(), ContractError> {
+pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     // Check stable denom deposit
@@ -180,11 +180,16 @@ pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<(), Co
     store_borrower_info(deps.storage, &borrower_raw, &liability)?;
     store_state(deps.storage, &state)?;
 
-    Ok(Response::new().add_messages(messages).add_attributes(vec![
-        attr("action", "repay_stable"),
-        attr("borrower", borrower),
-        attr("repay_amount", repay_amount),
-    ]))
+    let res = HandleResponse {
+        attributes: vec![
+            attr("action", "repay_stable"),
+            attr("borrower", borrower),
+            attr("repay_amount", repay_amount),
+        ],
+        messages: vec![],
+        data: None,
+    };
+    Ok(res)
 }
 
 pub fn claim_rewards(
@@ -192,7 +197,7 @@ pub fn claim_rewards(
     env: Env,
     info: MessageInfo,
     to: Option<HumanAddr>,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
     let mut state: State = read_state(deps.storage)?;
 
@@ -233,10 +238,15 @@ pub fn claim_rewards(
         vec![]
     };
 
-    Ok(Response::new().add_messages(messages).add_attributes(vec![
-        attr("action", "claim_rewards"),
-        attr("claim_amount", claim_amount),
-    ]))
+    let res = HandleResponse {
+        attributes: vec![
+            attr("action", "claim_rewards"),
+            attr("claim_amount", claim_amount),
+        ],
+        messages: vec![],
+        data: None,
+    };
+    Ok(res)
 }
 
 /// Compute interest and update state
@@ -417,7 +427,7 @@ fn assert_max_borrow_factor(
     state: &State,
     current_balance: Uint256,
     borrow_amount: Uint256,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let current_balance = Decimal256::from_uint256(current_balance);
     let borrow_amount = Decimal256::from_uint256(borrow_amount);
 
@@ -438,5 +448,5 @@ fn assert_max_borrow_factor(
         ));
     }
 
-    Ok(())
+    Ok(HandleResponse::default())
 }

@@ -5,49 +5,47 @@ use cosmwasm_std::entry_point;
 
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, StdResult, CanonicalAddr, InitResponse};
-use crate::common::optional_addr_validate;
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, StdResult, InitResponse, HandleResponse, HumanAddr};
 use crate::msgs::{
     BorrowRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
 };
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate(
+pub fn init(
     deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
-) -> StdResult<InitResponse, ContractError> {
+) -> Result<InitResponse, ContractError> {
     store_config(
         deps.storage,
         &Config {
-            owner: deps.api.canonical_address(&msg.owner)?,
+            owner: deps.api.canonical_address(&msg.owner.unwrap())?,
             base_rate: msg.base_rate,
             interest_multiplier: msg.interest_multiplier,
         },
     )?;
 
-    Ok(Response::default())
+    Ok(InitResponse::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
+pub fn handle(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+) -> Result<HandleResponse, ContractError> {
     match msg {
         ExecuteMsg::UpdateConfig {
             owner,
             base_rate,
             interest_multiplier,
         } => {
-            let api = deps.api;
             update_config(
                 deps,
                 info,
-                optional_addr_validate(api, owner)?,
+                owner,
                 base_rate,
                 interest_multiplier,
             )
@@ -58,17 +56,17 @@ pub fn execute(
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
-    owner: Option<Addr>,
+    owner: Option<HumanAddr>,
     base_rate: Option<Decimal256>,
     interest_multiplier: Option<Decimal256>,
-) -> Result<Response, ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
-    if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
+    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner {
         return Err(ContractError::Unauthorized {});
     }
 
     if let Some(owner) = owner {
-        config.owner = deps.api.addr_canonicalize(owner.as_str())?;
+        config.owner = deps.api.canonical_address(&owner)?;
     }
 
     if let Some(base_rate) = base_rate {
@@ -80,7 +78,7 @@ pub fn update_config(
     }
 
     store_config(deps.storage, &config)?;
-    Ok(Response::default())
+    Ok(HandleResponse::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -103,7 +101,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let state = read_config(deps.storage)?;
     let resp = ConfigResponse {
-        owner: deps.api.addr_humanize(&state.owner)?.to_string(),
+        owner: deps.api.human_address(&state.owner)?.to_string(),
         base_rate: state.base_rate,
         interest_multiplier: state.interest_multiplier,
     };

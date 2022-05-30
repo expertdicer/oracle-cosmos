@@ -1,7 +1,7 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, to_binary, HumanAddr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    StdResult, Uint128, WasmMsg,
+    StdResult, Uint128, WasmMsg, HandleResponse,
 };
 
 use crate::borrow::{compute_interest, compute_reward};
@@ -14,7 +14,7 @@ pub fn deposit_stable(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     // Check base denom deposit
@@ -48,21 +48,25 @@ pub fn deposit_stable(
 
     state.prev_aterra_supply += mint_amount;
     store_state(deps.storage, &state)?;
-    Ok(Response::new()
-        .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
+    let res = HandleResponse {
+        attributes: vec![
+            attr("action", "deposit_stable"),
+            attr("depositor", info.sender),
+            attr("mint_amount", mint_amount),
+            attr("deposit_amount", deposit_amount),
+        ],
+        messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps.api.human_address(&config.aterra_contract)?,
             send: vec![],
             msg: to_binary(&Cw20ExecuteMsg::Mint {
                 recipient: info.sender.to_string(),
                 amount: mint_amount.into(),
             })?,
-        }))
-        .add_attributes(vec![
-            attr("action", "deposit_stable"),
-            attr("depositor", info.sender),
-            attr("mint_amount", mint_amount),
-            attr("deposit_amount", deposit_amount),
-        ]))
+        }),
+        ],
+        data: None,
+    };
+    Ok(res)
 }
 
 pub fn redeem_stable(
@@ -70,7 +74,7 @@ pub fn redeem_stable(
     env: Env,
     sender: HumanAddr,
     burn_amount: Uint128,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     // Update interest related state
@@ -93,8 +97,13 @@ pub fn redeem_stable(
 
     state.prev_aterra_supply = state.prev_aterra_supply - Uint256::from(burn_amount);
     store_state(deps.storage, &state)?;
-    Ok(Response::new()
-        .add_messages(vec![
+    let res = HandleResponse {
+        attributes: vec![
+            attr("action", "redeem_stable"),
+            attr("burn_amount", burn_amount),
+            attr("redeem_amount", redeem_amount),
+        ],
+        messages: vec![
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: deps.api.human_address(&config.aterra_contract)?,
                 send: vec![],
@@ -113,12 +122,10 @@ pub fn redeem_stable(
                     },
                 )?],
             }),
-        ])
-        .add_attributes(vec![
-            attr("action", "redeem_stable"),
-            attr("burn_amount", burn_amount),
-            attr("redeem_amount", redeem_amount),
-        ]))
+        ],
+        data: None,
+    };
+    Ok(res)
 }
 
 fn assert_redeem_amount(
@@ -126,7 +133,7 @@ fn assert_redeem_amount(
     state: &State,
     current_balance: Uint256,
     redeem_amount: Uint256,
-) -> Result<(), ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let current_balance = Decimal256::from_uint256(current_balance);
     let redeem_amount = Decimal256::from_uint256(redeem_amount);
     if redeem_amount + state.total_reserves > current_balance {
@@ -135,7 +142,7 @@ fn assert_redeem_amount(
         ));
     }
 
-    Ok(())
+    Ok(HandleResponse::default())
 }
 
 pub(crate) fn compute_exchange_rate(
