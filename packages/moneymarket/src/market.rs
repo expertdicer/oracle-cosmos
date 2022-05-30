@@ -4,12 +4,13 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cw20::Cw20ReceiveMsg;
 use cw20::{Cw20Coin, MinterResponse};
+use cosmwasm_std::{HumanAddr};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct InstantiateMsg {
     /// Owner address for config update
-    pub owner_addr: String,
+    pub owner_addr: HumanAddr,
     /// stable coin denom used to borrow & repay
     pub stable_denom: String,
     /// Anchor token code ID used to instantiate
@@ -40,25 +41,25 @@ pub enum ExecuteMsg {
     ////////////////////
     /// Register Contracts contract address
     RegisterContracts {
-        overseer_contract: String,
+        overseer_contract: HumanAddr,
         /// The contract has the logics for
         /// Anchor borrow interest rate
-        interest_model: String,
+        interest_model: HumanAddr,
         /// The contract has the logics for
         /// ANC distribution speed
-        distribution_model: String,
+        distribution_model: HumanAddr,
         /// Collector contract to send all the reserve
-        collector_contract: String,
+        collector_contract: HumanAddr,
         /// Faucet contract to drip ANC token to users
-        distributor_contract: String,
+        distributor_contract: HumanAddr,
     },
 
     /// Update config values
     UpdateConfig {
-        owner_addr: Option<String>,
+        owner_addr: Option<HumanAddr>,
         max_borrow_factor: Option<Decimal256>,
-        interest_model: Option<String>,
-        distribution_model: Option<String>,
+        interest_model: Option<HumanAddr>,
+        distribution_model: Option<HumanAddr>,
     },
 
     ////////////////////
@@ -89,7 +90,7 @@ pub enum ExecuteMsg {
     /// Borrow stable asset with collaterals in overseer contract
     BorrowStable {
         borrow_amount: Uint256,
-        to: Option<String>,
+        to: Option<HumanAddr>,
     },
 
     /// Repay stable asset to decrease liability
@@ -97,7 +98,7 @@ pub enum ExecuteMsg {
 
     /// Claim distributed ANC rewards
     ClaimRewards {
-        to: Option<String>,
+        to: Option<HumanAddr>,
     },
 }
 
@@ -125,7 +126,7 @@ pub enum QueryMsg {
         block_height: Option<u64>,
     },
     BorrowerInfos {
-        start_after: Option<String>,
+        start_after: Option<HumanAddr>,
         limit: Option<u32>,
     },
 }

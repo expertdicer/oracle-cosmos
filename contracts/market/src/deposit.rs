@@ -1,6 +1,6 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
+    attr, to_binary, HumanAddr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
     StdResult, Uint128, WasmMsg,
 };
 
@@ -14,12 +14,12 @@ pub fn deposit_stable(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-) -> Result<Response, ContractError> {
+) -> Result<(), ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     // Check base denom deposit
     let deposit_amount: Uint256 = info
-        .funds
+        .sent_funds
         .iter()
         .find(|c| c.denom == config.stable_denom)
         .map(|c| Uint256::from(c.amount))
@@ -50,8 +50,8 @@ pub fn deposit_stable(
     store_state(deps.storage, &state)?;
     Ok(Response::new()
         .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: deps.api.addr_humanize(&config.aterra_contract)?.to_string(),
-            funds: vec![],
+            contract_addr: deps.api.human_address(&config.aterra_contract)?,
+            send: vec![],
             msg: to_binary(&Cw20ExecuteMsg::Mint {
                 recipient: info.sender.to_string(),
                 amount: mint_amount.into(),
@@ -68,9 +68,9 @@ pub fn deposit_stable(
 pub fn redeem_stable(
     deps: DepsMut,
     env: Env,
-    sender: Addr,
+    sender: HumanAddr,
     burn_amount: Uint128,
-) -> Result<Response, ContractError> {
+) -> Result<(), ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     // Update interest related state
@@ -96,14 +96,15 @@ pub fn redeem_stable(
     Ok(Response::new()
         .add_messages(vec![
             CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: deps.api.addr_humanize(&config.aterra_contract)?.to_string(),
-                funds: vec![],
+                contract_addr: deps.api.human_address(&config.aterra_contract)?,
+                send: vec![],
                 msg: to_binary(&Cw20ExecuteMsg::Burn {
                     amount: burn_amount,
                 })?,
             }),
             CosmosMsg::Bank(BankMsg::Send {
-                to_address: sender.to_string(),
+                from_address: HumanAddr::from(env.contract.address),
+                to_address: sender,
                 amount: vec![deduct_tax(
                     deps.as_ref(),
                     Coin {
@@ -143,10 +144,10 @@ pub(crate) fn compute_exchange_rate(
     state: &State,
     deposit_amount: Option<Uint256>,
 ) -> StdResult<Decimal256> {
-    let aterra_supply = query_supply(deps, deps.api.addr_humanize(&config.aterra_contract)?)?;
+    let aterra_supply = query_supply(deps, deps.api.human_address(&config.aterra_contract)?)?;
     let balance = query_balance(
         deps,
-        deps.api.addr_humanize(&config.contract_addr)?,
+        deps.api.human_address(&config.contract_addr)?,
         config.stable_denom.to_string(),
     )? - deposit_amount.unwrap_or_else(Uint256::zero);
 

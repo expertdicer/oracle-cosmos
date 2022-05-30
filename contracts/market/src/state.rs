@@ -102,7 +102,7 @@ pub fn read_borrower_infos(
         .take(limit)
         .map(|elem| {
             let (k, v) = elem?;
-            let borrower = deps.api.addr_humanize(&CanonicalAddr::from(k))?.to_string();
+            let borrower = deps.api.human_address(&CanonicalAddr::from(k))?.to_string();
             Ok(BorrowerInfoResponse {
                 borrower,
                 interest_index: v.interest_index,

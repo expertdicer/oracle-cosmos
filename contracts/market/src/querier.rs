@@ -1,5 +1,5 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::{to_binary, Addr, Deps, QueryRequest, StdResult, WasmQuery};
+use cosmwasm_std::{to_binary, HumanAddr, Deps, QueryRequest, StdResult, WasmQuery};
 
 use moneymarket::distribution_model::{AncEmissionRateResponse, QueryMsg as DistributionQueryMsg};
 use moneymarket::interest_model::{BorrowRateResponse, QueryMsg as InterestQueryMsg};
@@ -7,14 +7,14 @@ use moneymarket::overseer::{BorrowLimitResponse, ConfigResponse, QueryMsg as Ove
 
 pub fn query_borrow_rate(
     deps: Deps,
-    interest_addr: Addr,
+    interest_addr: HumanAddr,
     market_balance: Uint256,
     total_liabilities: Decimal256,
     total_reserves: Decimal256,
 ) -> StdResult<BorrowRateResponse> {
     let borrow_rate: BorrowRateResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: interest_addr.to_string(),
+            contract_addr: interest_addr,
             msg: to_binary(&InterestQueryMsg::BorrowRate {
                 market_balance,
                 total_liabilities,
@@ -27,13 +27,13 @@ pub fn query_borrow_rate(
 
 pub fn query_borrow_limit(
     deps: Deps,
-    overseer_addr: Addr,
-    borrower: Addr,
+    overseer_addr: HumanAddr,
+    borrower: HumanAddr,
     block_time: Option<u64>,
 ) -> StdResult<BorrowLimitResponse> {
     let borrow_limit: BorrowLimitResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: overseer_addr.to_string(),
+            contract_addr: overseer_addr,
             msg: to_binary(&OverseerQueryMsg::BorrowLimit {
                 borrower: borrower.to_string(),
                 block_time,
@@ -45,7 +45,7 @@ pub fn query_borrow_limit(
 
 pub fn query_anc_emission_rate(
     deps: Deps,
-    distribution_model: Addr,
+    distribution_model: HumanAddr,
     deposit_rate: Decimal256,
     target_deposit_rate: Decimal256,
     threshold_deposit_rate: Decimal256,
@@ -53,7 +53,7 @@ pub fn query_anc_emission_rate(
 ) -> StdResult<AncEmissionRateResponse> {
     let anc_emission_rate: AncEmissionRateResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: distribution_model.to_string(),
+            contract_addr: distribution_model,
             msg: to_binary(&DistributionQueryMsg::AncEmissionRate {
                 deposit_rate,
                 target_deposit_rate,
@@ -65,10 +65,10 @@ pub fn query_anc_emission_rate(
     Ok(anc_emission_rate)
 }
 
-pub fn query_target_deposit_rate(deps: Deps, overseer_contract: Addr) -> StdResult<Decimal256> {
+pub fn query_target_deposit_rate(deps: Deps, overseer_contract: HumanAddr) -> StdResult<Decimal256> {
     let overseer_config: ConfigResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: overseer_contract.to_string(),
+            contract_addr: overseer_contract,
             msg: to_binary(&OverseerQueryMsg::Config {})?,
         }))?;
 
