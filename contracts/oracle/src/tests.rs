@@ -1,7 +1,7 @@
-use crate::contract::{execute, instantiate, query};
+use crate::contract::{handle, init, query};
 use crate::error::ContractError;
 use cosmwasm_bignumber::Decimal256;
-use cosmwasm_std::from_binary;
+use cosmwasm_std::{from_binary, HumanAddr};
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use crate::msgs::{
     ConfigResponse, ExecuteMsg, FeederResponse, InstantiateMsg, PriceResponse, PricesResponse,
@@ -11,17 +11,17 @@ use std::str::FromStr;
 
 #[test]
 fn proper_initialization() {
-    let mut deps = mock_dependencies();
+    let mut deps = mock_dependencies(&[]);
 
     let msg = InstantiateMsg {
-        owner: "owner0000".to_string(),
+        owner: HumanAddr::from("owner0000"),
         base_asset: "base0000".to_string(),
     };
 
     let info = mock_info("addr0000", &[]);
 
     // we can just call .unwrap() to assert this was a success
-    let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
     // it worked, let's query the state
@@ -33,23 +33,23 @@ fn proper_initialization() {
 
 #[test]
 fn update_config() {
-    let mut deps = mock_dependencies();
+    let mut deps = mock_dependencies(&[]);
 
     let msg = InstantiateMsg {
-        owner: "owner0000".to_string(),
+        owner: HumanAddr::from("owner0000"),
         base_asset: "base0000".to_string(),
     };
 
     let info = mock_info("addr0000", &[]);
-    let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     // update owner
     let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner: Some("owner0001".to_string()),
+        owner: Some(HumanAddr::from("owner0001")),
     };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
     // it worked, let's query the state
@@ -62,7 +62,7 @@ fn update_config() {
     let info = mock_info("owner0000", &[]);
     let msg = ExecuteMsg::UpdateConfig { owner: None };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg);
+    let res = handle(deps.as_mut(), mock_env(), info, msg);
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("Must return unauthorized error"),
@@ -71,30 +71,30 @@ fn update_config() {
 
 #[test]
 fn register_feeder() {
-    let mut deps = mock_dependencies();
+    let mut deps = mock_dependencies(&[]);
 
     let msg = InstantiateMsg {
-        owner: "owner0000".to_string(),
+        owner: HumanAddr::from("owner0000"),
         base_asset: "base0000".to_string(),
     };
 
     let info = mock_info("addr0000", &[]);
-    let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     let info = mock_info("addr0000", &[]);
     let msg = ExecuteMsg::RegisterFeeder {
-        asset: "mAAPL".to_string(),
-        feeder: "feeder0000".to_string(),
+        asset: HumanAddr::from("mAAPL"),
+        feeder: HumanAddr::from("feeder0000"),
     };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
+    let res = handle(deps.as_mut(), mock_env(), info, msg.clone());
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("DO NOT ENTER HERE"),
     }
 
     let info = mock_info("owner0000", &[]);
-    let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
     let feeder_res: FeederResponse = from_binary(
         &query(
             deps.as_ref(),
@@ -117,30 +117,30 @@ fn register_feeder() {
 
 #[test]
 fn feed_price() {
-    let mut deps = mock_dependencies();
+    let mut deps = mock_dependencies(&[]);
 
     let msg = InstantiateMsg {
-        owner: "owner0000".to_string(),
+        owner: HumanAddr::from("owner0000"),
         base_asset: "base0000".to_string(),
     };
 
     let info = mock_info("addr0000", &[]);
-    let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     // Register feeder for mAAPL
     let msg = ExecuteMsg::RegisterFeeder {
-        asset: "mAAPL".to_string(),
-        feeder: "feeder0000".to_string(),
+        asset: HumanAddr::from("mAAPL"),
+        feeder: HumanAddr::from("feeder0000"),
     };
     let info = mock_info("owner0000", &[]);
-    let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+    let _res = handle(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
     // Register feeder for mGOGL
     let msg = ExecuteMsg::RegisterFeeder {
-        asset: "mGOGL".to_string(),
-        feeder: "feeder0000".to_string(),
+        asset: HumanAddr::from("mGOGL"),
+        feeder: HumanAddr::from("feeder0000"),
     };
-    let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     // Feed prices
     let info = mock_info("feeder0000", &[]);
@@ -151,7 +151,7 @@ fn feed_price() {
             ("mGOGL".to_string(), Decimal256::from_str("2.2").unwrap()),
         ],
     };
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    let _res = handle(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     let res = query(
         deps.as_ref(),
@@ -168,7 +168,7 @@ fn feed_price() {
         value,
         PriceResponse {
             rate: Decimal256::from_str("1.2").unwrap(),
-            last_updated_base: env.block.time.seconds(),
+            last_updated_base: env.block.time,
             last_updated_quote: 9999999999,
         }
     );
@@ -188,8 +188,8 @@ fn feed_price() {
         value,
         PriceResponse {
             rate: Decimal256::from_str("1.833333333333333333").unwrap(),
-            last_updated_base: env.block.time.seconds(),
-            last_updated_quote: env.block.time.seconds(),
+            last_updated_base: env.block.time,
+            last_updated_quote: env.block.time,
         }
     );
 
@@ -211,12 +211,12 @@ fn feed_price() {
                 PricesResponseElem {
                     asset: "mAAPL".to_string(),
                     price: Decimal256::from_str("1.2").unwrap(),
-                    last_updated_time: env.block.time.seconds(),
+                    last_updated_time: env.block.time,
                 },
                 PricesResponseElem {
                     asset: "mGOGL".to_string(),
                     price: Decimal256::from_str("2.2").unwrap(),
-                    last_updated_time: env.block.time.seconds(),
+                    last_updated_time: env.block.time,
                 }
             ],
         }
@@ -228,7 +228,7 @@ fn feed_price() {
         prices: vec![("mAAPL".to_string(), Decimal256::from_str("1.2").unwrap())],
     };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg);
+    let res = handle(deps.as_mut(), mock_env(), info, msg);
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("Must return unauthorized error"),
