@@ -6,37 +6,37 @@ use crate::state::{
 use cosmwasm_bignumber::Decimal256;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{attr, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{attr, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, HumanAddr, StdResult, InitResponse, HandleResponse};
 use crate::msgs::{
     ConfigResponse, ExecuteMsg, FeederResponse, InstantiateMsg, PriceResponse, PricesResponse,
     PricesResponseElem, QueryMsg,
 };
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate(
+pub fn init(
     deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
-) -> StdResult<Response> {
+) -> StdResult<InitResponse> {
     store_config(
         deps.storage,
         &Config {
-            owner: deps.api.addr_canonicalize(&msg.owner)?,
+            owner: deps.api.canonical_address(&msg.owner)?,
             base_asset: msg.base_asset,
         },
     )?;
 
-    Ok(Response::default())
+    Ok(InitResponse::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
+pub fn handle(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+) -> Result<HandleResponse, ContractError> {
     match msg {
         ExecuteMsg::UpdateConfig { owner } => update_config(deps, info, owner),
         ExecuteMsg::RegisterFeeder { asset, feeder } => register_feeder(deps, info, asset, feeder),
@@ -47,39 +47,44 @@ pub fn execute(
 pub fn update_config(
     deps: DepsMut,
     info: MessageInfo,
-    owner: Option<String>,
-) -> Result<Response, ContractError> {
+    owner: Option<HumanAddr>,
+) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
-    if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
+    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner {
         return Err(ContractError::Unauthorized {});
     }
 
     if let Some(owner) = owner {
-        config.owner = deps.api.addr_canonicalize(&owner)?;
+        config.owner = deps.api.canonical_address(&owner)?;
     }
 
     store_config(deps.storage, &config)?;
-    Ok(Response::default())
+    Ok(HandleResponse::default())
 }
 
 pub fn register_feeder(
     deps: DepsMut,
     info: MessageInfo,
-    asset: String,
-    feeder: String,
-) -> Result<Response, ContractError> {
+    asset: HumanAddr,
+    feeder: HumanAddr,
+) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    if deps.api.addr_canonicalize(info.sender.as_str())? != config.owner {
+    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner {
         return Err(ContractError::Unauthorized {});
     }
 
-    store_feeder(deps.storage, &asset, &deps.api.addr_canonicalize(&feeder)?)?;
+    store_feeder(deps.storage, &asset, &deps.api.canonical_address(&feeder)?)?;
 
-    Ok(Response::new().add_attributes(vec![
-        attr("action", "register_feeder"),
-        attr("asset", asset),
-        attr("feeder", feeder),
-    ]))
+    let res = HandleResponse {
+        messages: vec![],
+        attributes: vec![
+            attr("action", "register_feeder"),
+            attr("asset", asset),
+            attr("feeder", feeder),
+        ],
+        data: None
+    };
+    Ok(res)
 }
 
 pub fn feed_prices(
@@ -87,9 +92,9 @@ pub fn feed_prices(
     env: Env,
     info: MessageInfo,
     prices: Vec<(String, Decimal256)>,
-) -> Result<Response, ContractError> {
+) -> Result<HandleResponse, ContractError> {
     let mut attributes = vec![attr("action", "feed_prices")];
-    let sender_raw = deps.api.addr_canonicalize(info.sender.as_str())?;
+    let sender_raw = deps.api.canonical_address(&HumanAddr(info.sender.to_string()))?;
     for price in prices {
         let asset: String = price.0;
         let price: Decimal256 = price.1;
@@ -107,13 +112,18 @@ pub fn feed_prices(
             deps.storage,
             &asset,
             &PriceInfo {
-                last_updated_time: env.block.time.seconds(),
+                last_updated_time: env.block.time,
                 price,
             },
         )?;
     }
 
-    Ok(Response::new().add_attributes(attributes))
+    let res = HandleResponse {
+        messages: vec![],
+        attributes: attributes,
+        data: None,
+    };
+    Ok(res)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -131,7 +141,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let state = read_config(deps.storage)?;
     let resp = ConfigResponse {
-        owner: deps.api.addr_humanize(&state.owner)?.to_string(),
+        owner: deps.api.human_address(&state.owner)?.to_string(),
         base_asset: state.base_asset,
     };
 
@@ -142,7 +152,7 @@ fn query_feeder(deps: Deps, asset: String) -> StdResult<FeederResponse> {
     let feeder = read_feeder(deps.storage, &asset)?;
     let resp = FeederResponse {
         asset,
-        feeder: deps.api.addr_humanize(&feeder)?.to_string(),
+        feeder: deps.api.human_address(&feeder)?.to_string(),
     };
 
     Ok(resp)

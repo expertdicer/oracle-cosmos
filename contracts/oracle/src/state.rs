@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::Decimal256;
-use cosmwasm_std::{CanonicalAddr, Order, StdError, StdResult, Storage};
+use cosmwasm_std::{CanonicalAddr, StdError, StdResult, Storage, Order};
 use cosmwasm_storage::{singleton, singleton_read, Bucket, ReadonlyBucket};
 
 use crate::msgs::PricesResponseElem;
