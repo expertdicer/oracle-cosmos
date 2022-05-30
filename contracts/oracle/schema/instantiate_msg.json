@@ -3,10 +3,19 @@
   "title": "InstantiateMsg",
   "type": "object",
   "required": [
-    "base_asset"
+    "base_asset",
+    "owner"
   ],
   "properties": {
     "base_asset": {
+      "type": "string"
+    },
+    "owner": {
+      "$ref": "#/definitions/HumanAddr"
+    }
+  },
+  "definitions": {
+    "HumanAddr": {
       "type": "string"
     }
   }
