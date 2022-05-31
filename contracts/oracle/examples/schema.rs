@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 use orchai_oracle::msgs::{
-    InstantiateMsg, ConfigResponse, FeederResponse, PriceResponse, PricesResponseElem, PricesResponse
+    InstantiateMsg, ConfigResponse, FeederResponse, PriceResponse, PricesResponseElem, PricesResponse, ExecuteMsg, QueryMsg
 };
 
 fn main() {
@@ -18,4 +18,6 @@ fn main() {
     export_schema(&schema_for!(PriceResponse), &out_dir);
     export_schema(&schema_for!(PricesResponseElem), &out_dir);
     export_schema(&schema_for!(PricesResponse), &out_dir);
+    export_schema(&schema_for!(ExecuteMsg), &out_dir);
+    export_schema(&schema_for!(QueryMsg), &out_dir);
 }

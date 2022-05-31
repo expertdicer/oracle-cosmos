@@ -5,7 +5,7 @@ use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 use moneymarket::overseer::{
     AllCollateralsResponse, BorrowLimitResponse, CollateralsResponse, ConfigResponse,
-    InstantiateMsg, MigrateMsg, WhitelistResponse, WhitelistResponseElem,
+    InstantiateMsg, MigrateMsg, WhitelistResponse, WhitelistResponseElem, ExecuteMsg, QueryMsg
 };
 
 fn main() {
@@ -22,4 +22,6 @@ fn main() {
     export_schema(&schema_for!(MigrateMsg), &out_dir);
     export_schema(&schema_for!(WhitelistResponse), &out_dir);
     export_schema(&schema_for!(WhitelistResponseElem), &out_dir);
+    export_schema(&schema_for!(ExecuteMsg), &out_dir);
+    export_schema(&schema_for!(QueryMsg), &out_dir);
 }
