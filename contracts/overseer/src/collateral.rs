@@ -41,7 +41,7 @@ pub fn lock_collateral(
             contract_addr: deps.api.human_address(&whitelist_elem.custody_contract)?,
             send: vec![],
             msg: to_binary(&CustodyExecuteMsg::LockCollateral {
-                borrower: info.sender.to_string(),
+                borrower: info.sender.clone(),
                 amount: collateral.1,
             })?,
         }));
@@ -102,7 +102,7 @@ pub fn unlock_collateral(
             contract_addr: deps.api.human_address(&whitelist_elem.custody_contract)?,
             send: vec![],
             msg: to_binary(&CustodyExecuteMsg::UnlockCollateral {
-                borrower: borrower.to_string(),
+                borrower: borrower.clone(),
                 amount: collateral.1,
             })?,
         }));
@@ -179,8 +179,8 @@ pub fn liquidate_collateral(
                 contract_addr: deps.api.human_address(&whitelist_elem.custody_contract)?,
                 send: vec![],
                 msg: to_binary(&CustodyExecuteMsg::LiquidateCollateral {
-                    liquidator: info.sender.to_string(),
-                    borrower: borrower.to_string(),
+                    liquidator: info.sender.clone(),
+                    borrower: borrower.clone(),
                     amount: collateral.1,
                 })?,
             }))
