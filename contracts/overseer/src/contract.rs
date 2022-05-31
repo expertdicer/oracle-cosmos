@@ -1,8 +1,9 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, HumanAddr, CanonicalAddr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    InitResponse, HandleResponse, MigrateResponse, StdResult, Uint128, WasmMsg,
+    attr, to_binary, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps, DepsMut, Env,
+    HandleResponse, HumanAddr, InitResponse, MessageInfo, MigrateResponse, StdResult, Uint128,
+    WasmMsg,
 };
 use std::cmp::{max, min};
 
@@ -28,6 +29,7 @@ use moneymarket::overseer::{
     ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, WhitelistResponse,
     WhitelistResponseElem,
 };
+// use moneymarket::querier::{deduct_tax, query_balance};
 use moneymarket::querier::{deduct_tax, query_balance};
 
 pub const BLOCKS_PER_YEAR: u128 = 4656810;
@@ -91,7 +93,12 @@ pub fn init(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, env: Env, info: MessageInfo, msg: MigrateMsg) -> StdResult<MigrateResponse> {
+pub fn migrate(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: MigrateMsg,
+) -> StdResult<MigrateResponse> {
     store_dynrate_config(
         deps.storage,
         &DynrateConfig {
@@ -148,26 +155,24 @@ pub fn handle(
             dyn_rate_yr_increase_expectation,
             dyn_rate_min,
             dyn_rate_max,
-        } => {
-            update_config(
-                deps,
-                info,
-                owner_addr,
-                oracle_contract,
-                liquidation_contract,
-                threshold_deposit_rate,
-                target_deposit_rate,
-                buffer_distribution_factor,
-                anc_purchase_factor,
-                epoch_period,
-                price_timeframe,
-                dyn_rate_epoch,
-                dyn_rate_maxchange,
-                dyn_rate_yr_increase_expectation,
-                dyn_rate_min,
-                dyn_rate_max,
-            )
-        }
+        } => update_config(
+            deps,
+            info,
+            owner_addr,
+            oracle_contract,
+            liquidation_contract,
+            threshold_deposit_rate,
+            target_deposit_rate,
+            buffer_distribution_factor,
+            anc_purchase_factor,
+            epoch_period,
+            price_timeframe,
+            dyn_rate_epoch,
+            dyn_rate_maxchange,
+            dyn_rate_yr_increase_expectation,
+            dyn_rate_min,
+            dyn_rate_max,
+        ),
         ExecuteMsg::Whitelist {
             name,
             symbol,
@@ -195,7 +200,7 @@ pub fn handle(
             update_whitelist(
                 deps,
                 info,
-                api.human_address(&CanonicalAddr(to_binary(&collateral_token)?))?, 
+                api.human_address(&CanonicalAddr(to_binary(&collateral_token)?))?,
                 custody_contract,
                 max_ltv,
             )
@@ -211,7 +216,12 @@ pub fn handle(
         }
         ExecuteMsg::LiquidateCollateral { borrower } => {
             let api = deps.api;
-            liquidate_collateral(deps, env, info, api.human_address(&CanonicalAddr(to_binary(&borrower)?))?)
+            liquidate_collateral(
+                deps,
+                env,
+                info,
+                api.human_address(&CanonicalAddr(to_binary(&borrower)?))?,
+            )
         }
         ExecuteMsg::FundReserve {} => fund_reserve(deps, info),
     }
@@ -239,7 +249,11 @@ pub fn update_config(
     let mut config: Config = read_config(deps.storage)?;
     let mut dynrate_config: DynrateConfig = read_dynrate_config(deps.storage)?;
 
-    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner_addr {
+    if deps
+        .api
+        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        != config.owner_addr
+    {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -252,9 +266,7 @@ pub fn update_config(
     }
 
     if let Some(liquidation_contract) = liquidation_contract {
-        config.liquidation_contract = deps
-            .api
-            .canonical_address(&liquidation_contract)?;
+        config.liquidation_contract = deps.api.canonical_address(&liquidation_contract)?;
     }
 
     if let Some(threshold_deposit_rate) = threshold_deposit_rate {
@@ -320,11 +332,17 @@ pub fn register_whitelist(
     max_ltv: Decimal256,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner_addr {
+    if deps
+        .api
+        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        != config.owner_addr
+    {
         return Err(ContractError::Unauthorized {});
     }
 
-    let collateral_token_raw = deps.api.canonical_address(&HumanAddr(collateral_token.to_string()))?;
+    let collateral_token_raw = deps
+        .api
+        .canonical_address(&HumanAddr(collateral_token.to_string()))?;
     if read_whitelist_elem(deps.storage, &collateral_token_raw).is_ok() {
         return Err(ContractError::TokenAlreadyRegistered {});
     }
@@ -335,11 +353,12 @@ pub fn register_whitelist(
         &WhitelistElem {
             name: name.to_string(),
             symbol: symbol.to_string(),
-            custody_contract: deps.api.canonical_address(&HumanAddr(custody_contract.to_string()))?,
+            custody_contract: deps
+                .api
+                .canonical_address(&HumanAddr(custody_contract.to_string()))?,
             max_ltv,
         },
     )?;
-    
     let res = HandleResponse {
         attributes: vec![
             attr("action", "register_whitelist"),
@@ -363,16 +382,24 @@ pub fn update_whitelist(
     max_ltv: Option<Decimal256>,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner_addr {
+    if deps
+        .api
+        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        != config.owner_addr
+    {
         return Err(ContractError::Unauthorized {});
     }
 
-    let collateral_token_raw = deps.api.canonical_address(&HumanAddr(collateral_token.to_string()))?;
+    let collateral_token_raw = deps
+        .api
+        .canonical_address(&HumanAddr(collateral_token.to_string()))?;
     let mut whitelist_elem: WhitelistElem =
         read_whitelist_elem(deps.storage, &collateral_token_raw)?;
 
     if let Some(custody_contract) = custody_contract {
-        whitelist_elem.custody_contract = deps.api.canonical_address(&HumanAddr(custody_contract.to_string()))?;
+        whitelist_elem.custody_contract = deps
+            .api
+            .canonical_address(&HumanAddr(custody_contract.to_string()))?;
     }
 
     if let Some(max_ltv) = max_ltv {
@@ -518,10 +545,8 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
     let anc_purchase_amount = accrued_buffer * config.anc_purchase_factor;
     if !anc_purchase_amount.is_zero() {
         messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address,
-            to_address: deps
-                .api
-                .human_address(&config.collector_contract)?,
+            from_address: env.contract.address.clone(),
+            to_address: deps.api.human_address(&config.collector_contract)?,
             amount: vec![deduct_tax(
                 deps.as_ref(),
                 Coin {
@@ -567,7 +592,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
 
             // Send some portion of interest buffer to Market contract
             messages.push(CosmosMsg::Bank(BankMsg::Send {
-                from_address: env.contract.address,
+                from_address: env.contract.address.clone(),
                 to_address: market_contract,
                 amount: vec![Coin {
                     denom: config.stable_denom,
@@ -733,19 +758,19 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         )?),
         QueryMsg::Collaterals { borrower } => to_binary(&query_collaterals(
             deps,
-            deps.api.human_address(&CanonicalAddr(to_binary(&borrower)?))?,
+            deps.api
+                .human_address(&CanonicalAddr(to_binary(&borrower)?))?,
         )?),
-        QueryMsg::AllCollaterals { start_after, limit } => to_binary(&query_all_collaterals(
-            deps,
-            start_after,
-            limit,
-        )?),
+        QueryMsg::AllCollaterals { start_after, limit } => {
+            to_binary(&query_all_collaterals(deps, start_after, limit)?)
+        }
         QueryMsg::BorrowLimit {
             borrower,
             block_time,
         } => to_binary(&query_borrow_limit(
             deps,
-            deps.api.human_address(&CanonicalAddr(to_binary(&borrower)?))?,
+            deps.api
+                .human_address(&CanonicalAddr(to_binary(&borrower)?))?,
             block_time,
         )?),
         QueryMsg::DynrateState {} => to_binary(&query_dynrate_state(deps)?),

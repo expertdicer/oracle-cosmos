@@ -1,21 +1,21 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "InstantiateMsg",
+  "title": "BorrowLimitResponse",
   "type": "object",
   "required": [
-    "base_asset",
-    "owner"
+    "borrow_limit",
+    "borrower"
   ],
   "properties": {
-    "base_asset": {
-      "type": "string"
+    "borrow_limit": {
+      "$ref": "#/definitions/Uint256"
     },
-    "owner": {
-      "$ref": "#/definitions/HumanAddr"
+    "borrower": {
+      "type": "string"
     }
   },
   "definitions": {
-    "HumanAddr": {
+    "Uint256": {
       "type": "string"
     }
   }

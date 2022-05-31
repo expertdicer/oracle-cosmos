@@ -3,11 +3,12 @@ use crate::state::{read_config, store_config, Config};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
+use crate::msgs::{BorrowRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, StdResult, InitResponse, HandleResponse, HumanAddr};
-use crate::msgs::{
-    BorrowRateResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg,
+use cosmwasm_std::{
+    to_binary, Binary, Deps, DepsMut, Env, HandleResponse, HumanAddr, InitResponse, MessageInfo,
+    StdResult,
 };
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -41,15 +42,7 @@ pub fn handle(
             owner,
             base_rate,
             interest_multiplier,
-        } => {
-            update_config(
-                deps,
-                info,
-                owner,
-                base_rate,
-                interest_multiplier,
-            )
-        }
+        } => update_config(deps, info, owner, base_rate, interest_multiplier),
     }
 }
 
@@ -61,7 +54,11 @@ pub fn update_config(
     interest_multiplier: Option<Decimal256>,
 ) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
-    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner {
+    if deps
+        .api
+        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        != config.owner
+    {
         return Err(ContractError::Unauthorized {});
     }
 

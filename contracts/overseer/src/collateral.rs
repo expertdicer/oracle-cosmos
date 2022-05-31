@@ -1,7 +1,7 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, to_vec, HumanAddr, CosmosMsg, Deps, DepsMut, Env, MessageInfo, HandleResponse,StdResult,
-    WasmMsg,
+    attr, to_binary, to_vec, CosmosMsg, Deps, DepsMut, Env, HandleResponse, HumanAddr, MessageInfo,
+    StdResult, WasmMsg,
 };
 
 use crate::error::ContractError;
@@ -24,7 +24,9 @@ pub fn lock_collateral(
     info: MessageInfo,
     collaterals_human: TokensHuman,
 ) -> Result<HandleResponse, ContractError> {
-    let borrower_raw = deps.api.canonical_address(&HumanAddr(info.sender.to_string()))?;
+    let borrower_raw = deps
+        .api
+        .canonical_address(&HumanAddr(info.sender.to_string()))?;
     let mut cur_collaterals: Tokens = read_collaterals(deps.storage, &borrower_raw);
 
     let collaterals: Tokens = collaterals_human.to_raw(deps.as_ref())?;
@@ -36,9 +38,7 @@ pub fn lock_collateral(
     for collateral in collaterals {
         let whitelist_elem: WhitelistElem = read_whitelist_elem(deps.storage, &collateral.0)?;
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: deps
-                .api
-                .human_address(&whitelist_elem.custody_contract)?,
+            contract_addr: deps.api.human_address(&whitelist_elem.custody_contract)?,
             send: vec![],
             msg: to_binary(&CustodyExecuteMsg::LockCollateral {
                 borrower: info.sender.to_string(),
@@ -85,11 +85,8 @@ pub fn unlock_collateral(
     }
 
     // Compute borrow limit with collaterals except unlock target collaterals
-    let (borrow_limit, _) = compute_borrow_limit(
-        deps.as_ref(),
-        &cur_collaterals,
-        Some(env.block.time),
-    )?;
+    let (borrow_limit, _) =
+        compute_borrow_limit(deps.as_ref(), &cur_collaterals, Some(env.block.time))?;
     let borrow_amount_res: BorrowerInfoResponse =
         query_borrower_info(deps.as_ref(), market, borrower.clone(), env.block.height)?;
     if borrow_limit < borrow_amount_res.loan_amount {
@@ -98,19 +95,17 @@ pub fn unlock_collateral(
 
     store_collaterals(deps.storage, &borrower_raw, &cur_collaterals)?;
 
-    let mut messages: Vec<SubMsg> = vec![];
+    let mut messages: Vec<CosmosMsg> = vec![];
     for collateral in collaterals {
         let whitelist_elem: WhitelistElem = read_whitelist_elem(deps.storage, &collateral.0)?;
-        messages.push(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: deps
-                .api
-                .human_address(&whitelist_elem.custody_contract)?,
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: deps.api.human_address(&whitelist_elem.custody_contract)?,
             send: vec![],
             msg: to_binary(&CustodyExecuteMsg::UnlockCollateral {
                 borrower: borrower.to_string(),
                 amount: collateral.1,
             })?,
-        })));
+        }));
     }
 
     // Logging stuff, so can be removed
@@ -144,11 +139,8 @@ pub fn liquidate_collateral(
     let mut cur_collaterals: Tokens = read_collaterals(deps.storage, &borrower_raw);
 
     // Compute borrow limit with collaterals except unlock target collaterals
-    let (borrow_limit, collateral_prices) = compute_borrow_limit(
-        deps.as_ref(),
-        &cur_collaterals,
-        Some(env.block.time),
-    )?;
+    let (borrow_limit, collateral_prices) =
+        compute_borrow_limit(deps.as_ref(), &cur_collaterals, Some(env.block.time))?;
     let borrow_amount_res: BorrowerInfoResponse =
         query_borrower_info(deps.as_ref(), market, borrower.clone(), env.block.height)?;
     let borrow_amount = borrow_amount_res.loan_amount;
@@ -178,15 +170,13 @@ pub fn liquidate_collateral(
     let prev_balance: Uint256 =
         query_balance(deps.as_ref(), market_contract.clone(), config.stable_denom)?;
 
-    let liquidation_messages: Vec<CosmosMsg> = liquidation_amount
+    let mut liquidation_messages: Vec<CosmosMsg> = liquidation_amount
         .iter()
         .map(|collateral| {
             let whitelist_elem: WhitelistElem = read_whitelist_elem(deps.storage, &collateral.0)?;
 
             Ok(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: deps
-                    .api
-                    .human_address(&whitelist_elem.custody_contract)?,
+                contract_addr: deps.api.human_address(&whitelist_elem.custody_contract)?,
                 send: vec![],
                 msg: to_binary(&CustodyExecuteMsg::LiquidateCollateral {
                     liquidator: info.sender.to_string(),
@@ -197,7 +187,6 @@ pub fn liquidate_collateral(
         })
         .filter(|msg| msg.is_ok())
         .collect::<StdResult<Vec<CosmosMsg>>>()?;
-    
     let execute_msg = CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: market_contract,
         send: vec![],
@@ -206,19 +195,20 @@ pub fn liquidate_collateral(
             prev_balance,
         })?,
     });
+
+    liquidation_messages.push(execute_msg);
+
     let res = HandleResponse {
         attributes: vec![],
-        messages: liquidation_messages.push(execute_msg),
+        messages: liquidation_messages,
         data: None,
     };
     Ok(res)
 }
 
 pub fn query_collaterals(deps: Deps, borrower: HumanAddr) -> StdResult<CollateralsResponse> {
-    let collaterals: Tokens = read_collaterals(
-        deps.storage,
-        &deps.api.canonical_address(&borrower)?,
-    );
+    let collaterals: Tokens =
+        read_collaterals(deps.storage, &deps.api.canonical_address(&borrower)?);
 
     Ok(CollateralsResponse {
         borrower: borrower.to_string(),
@@ -286,10 +276,7 @@ pub fn query_borrow_limit(
     borrower: HumanAddr,
     block_time: Option<u64>,
 ) -> StdResult<BorrowLimitResponse> {
-    let collaterals = read_collaterals(
-        deps.storage,
-        &deps.api.canonical_address(&borrower)?,
-    );
+    let collaterals = read_collaterals(deps.storage, &deps.api.canonical_address(&borrower)?);
 
     // Compute borrow limit with collaterals
     let (borrow_limit, _) = compute_borrow_limit(deps, &collaterals, block_time)?;
