@@ -1,4 +1,4 @@
-use crate::contract::{execute, instantiate, query};
+use crate::contract::{handle, init, query};
 use crate::error::ContractError;
 use crate::querier::query_epoch_state;
 use crate::state::{
@@ -9,7 +9,7 @@ use crate::testing::mock_querier::mock_dependencies;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, Api, BankMsg, CanonicalAddr, Coin, CosmosMsg, Decimal,
+    attr, from_binary, to_binary, HumanAddr, Api, BankMsg, CanonicalAddr, Coin, CosmosMsg, Decimal,
     DepsMut, SubMsg, Uint128, WasmMsg,
 };
 use moneymarket::custody::ExecuteMsg as CustodyExecuteMsg;
@@ -27,11 +27,11 @@ fn proper_initialization() {
     let mut deps = mock_dependencies(&[]);
 
     let msg = InstantiateMsg {
-        owner_addr: "owner".to_string(),
-        oracle_contract: "oracle".to_string(),
-        market_contract: "market".to_string(),
-        liquidation_contract: "liquidation".to_string(),
-        collector_contract: "collector".to_string(),
+        owner_addr: HumanAddr::from("owner"),
+        oracle_contract: HumanAddr::from("oracle"),
+        market_contract: HumanAddr::from("market"),
+        liquidation_contract: HumanAddr::from("liquidation"),
+        collector_contract: HumanAddr::from("collector"),
         stable_denom: "uusd".to_string(),
         epoch_period: 86400u64,
         threshold_deposit_rate: Decimal256::permille(3),
@@ -49,7 +49,7 @@ fn proper_initialization() {
     let info = mock_info("addr0000", &[]);
 
     // we can just call .unwrap() to assert this was a success
-    let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     let query_res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
     let config_res: ConfigResponse = from_binary(&query_res).unwrap();
@@ -96,11 +96,11 @@ fn update_config() {
 
     let info = mock_info("addr0000", &[]);
     let msg = InstantiateMsg {
-        owner_addr: "owner".to_string(),
-        oracle_contract: "oracle".to_string(),
-        market_contract: "market".to_string(),
-        liquidation_contract: "liquidation".to_string(),
-        collector_contract: "collector".to_string(),
+        owner_addr: HumanAddr::from("owner"),
+        oracle_contract: HumanAddr::from("oracle"),
+        market_contract: HumanAddr::from("market"),
+        liquidation_contract: HumanAddr::from("liquidation"),
+        collector_contract: HumanAddr::from("collector"),
         stable_denom: "uusd".to_string(),
         epoch_period: 86400u64,
         threshold_deposit_rate: Decimal256::permille(3),
@@ -116,12 +116,12 @@ fn update_config() {
     };
 
     // we can just call .unwrap() to assert this was a success
-    let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     // update owner
     let info = mock_info("owner", &[]);
     let msg = ExecuteMsg::UpdateConfig {
-        owner_addr: Some("owner1".to_string()),
+        owner_addr: Some(HumanAddr::from("owner1")),
         oracle_contract: None,
         liquidation_contract: None,
         threshold_deposit_rate: None,
@@ -137,7 +137,7 @@ fn update_config() {
         dyn_rate_max: None,
     };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
     // it worked, let's query the state
@@ -149,8 +149,8 @@ fn update_config() {
     let info = mock_info("owner1", &[]);
     let msg = ExecuteMsg::UpdateConfig {
         owner_addr: None,
-        oracle_contract: Some("oracle1".to_string()),
-        liquidation_contract: Some("liquidation1".to_string()),
+        oracle_contract: Some( HumanAddr::from("oracle1")),
+        liquidation_contract: Some(HumanAddr::from("liquidation1")),
         threshold_deposit_rate: Some(Decimal256::permille(1)),
         target_deposit_rate: Some(Decimal256::permille(2)),
         buffer_distribution_factor: Some(Decimal256::percent(10)),
@@ -170,7 +170,7 @@ fn update_config() {
         )),
     };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
     // it worked, let's query the state
@@ -208,7 +208,7 @@ fn update_config() {
         dyn_rate_max: None,
     };
 
-    let res = execute(deps.as_mut(), mock_env(), info, msg);
+    let res = handle(deps.as_mut(), mock_env(), info, msg);
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("Must return unauthorized error"),
@@ -221,11 +221,11 @@ fn whitelist() {
 
     let info = mock_info("addr0000", &[]);
     let msg = InstantiateMsg {
-        owner_addr: "owner".to_string(),
-        oracle_contract: "oracle".to_string(),
-        market_contract: "market".to_string(),
-        liquidation_contract: "liquidation".to_string(),
-        collector_contract: "collector".to_string(),
+        owner_addr: HumanAddr::from("owner"),
+        oracle_contract: HumanAddr::from("oracle"),
+        market_contract: HumanAddr::from("market"),
+        liquidation_contract: HumanAddr::from("liquidation"),
+        collector_contract: HumanAddr::from("collector"),
         stable_denom: "uusd".to_string(),
         epoch_period: 86400u64,
         threshold_deposit_rate: Decimal256::permille(3),
@@ -241,25 +241,25 @@ fn whitelist() {
     };
 
     // we can just call .unwrap() to assert this was a success
-    let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let _res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
 
     let msg = ExecuteMsg::Whitelist {
         name: "bluna".to_string(),
         symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
-        custody_contract: "custody".to_string(),
+        collateral_token: HumanAddr::from("bluna"),
+        custody_contract: HumanAddr::from("custody"),
         max_ltv: Decimal256::percent(60),
     };
 
     let info = mock_info("addr0000", &[]);
-    let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
+    let res = handle(deps.as_mut(), mock_env(), info, msg.clone());
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("DO NOT ENTER HERE"),
     };
 
     let info = mock_info("owner", &[]);
-    let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(
         res.attributes,
         vec![
@@ -276,7 +276,7 @@ fn whitelist() {
         deps.as_ref(),
         mock_env(),
         QueryMsg::Whitelist {
-            collateral_token: Some("bluna".to_string()),
+            collateral_token: Some(HumanAddr::from("bluna")),
             start_after: None,
             limit: None,
         },
@@ -300,33 +300,33 @@ fn whitelist() {
     let msg = ExecuteMsg::Whitelist {
         name: "bluna".to_string(),
         symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
-        custody_contract: "custody".to_string(),
+        collateral_token: HumanAddr::from("bluna"),
+        custody_contract: HumanAddr::from("custody"),
         max_ltv: Decimal256::percent(60),
     };
 
     let info = mock_info("owner", &[]);
-    let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
+    let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap_err();
     match res {
         ContractError::TokenAlreadyRegistered {} => (),
         _ => panic!("DO NOT ENTER HERE"),
     }
 
     let msg = ExecuteMsg::UpdateWhitelist {
-        collateral_token: "bluna".to_string(),
-        custody_contract: Some("custody2".to_string()),
+        collateral_token: HumanAddr::from("bluna"),
+        custody_contract: Some(HumanAddr::from("custody2")),
         max_ltv: Some(Decimal256::percent(30)),
     };
 
     let info = mock_info("addr0000", &[]);
-    let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
+    let res = handle(deps.as_mut(), mock_env(), info, msg.clone());
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("DO NOT ENTER HERE"),
     };
 
     let info = mock_info("owner", &[]);
-    let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(
         res.attributes,
         vec![
@@ -341,7 +341,7 @@ fn whitelist() {
         deps.as_ref(),
         mock_env(),
         QueryMsg::Whitelist {
-            collateral_token: Some("bluna".to_string()),
+            collateral_token: Some(HumanAddr::from("bluna")),
             start_after: None,
             limit: None,
         },
@@ -372,11 +372,11 @@ fn execute_epoch_operations() {
     let mut env = mock_env();
     let info = mock_info("owner", &[]);
     let msg = InstantiateMsg {
-        owner_addr: "owner".to_string(),
-        oracle_contract: "oracle".to_string(),
-        market_contract: "market".to_string(),
-        liquidation_contract: "liquidation".to_string(),
-        collector_contract: "collector".to_string(),
+        owner_addr: HumanAddr::from("owner"),
+        oracle_contract: HumanAddr::from("oracle"),
+        market_contract: HumanAddr::from("market"),
+        liquidation_contract: HumanAddr::from("liquidation"),
+        collector_contract: HumanAddr::from("collector"),
         stable_denom: "uusd".to_string(),
         epoch_period: 86400u64,
         threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
@@ -392,49 +392,47 @@ fn execute_epoch_operations() {
     };
 
     // we can just call .unwrap() to assert this was a success
-    let _res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+    let _res = init(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
     let batom_collat_token = deps
         .api
-        .addr_humanize(&CanonicalAddr::from(vec![
+        .human_address(&CanonicalAddr::from(vec![
             1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]))
-        .unwrap()
-        .to_string();
+        .unwrap();
 
     let bluna_collat_token = deps
         .api
-        .addr_humanize(&CanonicalAddr::from(vec![
+        .human_address(&CanonicalAddr::from(vec![
             1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]))
-        .unwrap()
-        .to_string();
+        .unwrap();
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
         name: "bluna".to_string(),
         symbol: "bluna".to_string(),
         collateral_token: bluna_collat_token,
-        custody_contract: "custody_bluna".to_string(),
+        custody_contract: HumanAddr::from("custody_bluna"),
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg);
 
     let msg = ExecuteMsg::Whitelist {
         name: "batom".to_string(),
         symbol: "batom".to_string(),
         collateral_token: batom_collat_token,
-        custody_contract: "custody_batom".to_string(),
+        custody_contract: HumanAddr::from("custody_batom"),
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg);
 
     let msg = ExecuteMsg::ExecuteEpochOperations {};
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone());
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone());
     match res {
         Err(ContractError::EpochNotPassed(12345)) => (),
         _ => panic!("DO NOT ENTER HERE"),
@@ -452,12 +450,13 @@ fn execute_epoch_operations() {
     // deposit rate = 0.000002314814814814
     // accrued_buffer = 10,000,000,000
     // anc_purchase_amount = accrued_buffer * 0.2 = 2,000,000,000
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
     assert_eq!(
         res.messages,
         vec![
             SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-                to_address: "collector".to_string(),
+                from_address: HumanAddr::from("overseer"),
+                to_address: HumanAddr::from("collector"),
                 amount: vec![deduct_tax(
                     deps.as_ref(),
                     Coin {
@@ -531,7 +530,7 @@ fn execute_epoch_operations() {
     // interest_buffer = 9,999,000,000
     // (125 / 120 - 1) / 86400
     // deposit rate = 0.000000482253086419
-    let res = execute(deps.as_mut(), env, info, msg).unwrap();
+    let res = handle(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
         res.messages,
         vec![
@@ -627,12 +626,12 @@ fn update_epoch_state() {
     let msg = ExecuteMsg::Whitelist {
         name: "bluna".to_string(),
         symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
+        collateral_token: HumanAddr::from("bluna"),
         custody_contract: "custody_bluna".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), mock_env(), info.clone(), msg);
 
     let msg = ExecuteMsg::Whitelist {
         name: "batom".to_string(),
@@ -642,14 +641,14 @@ fn update_epoch_state() {
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), mock_env(), info.clone(), msg);
 
     // only contract itself can execute update_epoch_state
     let msg = ExecuteMsg::UpdateEpochState {
         interest_buffer: Uint256::from(10000000000u128),
         distributed_interest: Uint256::from(1000000u128),
     };
-    let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
+    let res = handle(deps.as_mut(), mock_env(), info, msg.clone());
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("DO NOT ENTER HERE"),
@@ -665,7 +664,7 @@ fn update_epoch_state() {
         &(Uint256::from(1000000u64), Decimal256::percent(120)),
     )]);
 
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -698,7 +697,7 @@ fn update_epoch_state() {
     )]);
 
     env.block.height += 86400u64;
-    let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), env.clone(), info, msg).unwrap();
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -776,51 +775,49 @@ fn lock_collateral() {
 
     let batom_collat_token = deps
         .api
-        .addr_humanize(&CanonicalAddr::from(vec![
+        .human_address(&CanonicalAddr::from(vec![
             1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]))
-        .unwrap()
-        .to_string();
+        .unwrap();
 
     let bluna_collat_token = deps
         .api
-        .addr_humanize(&CanonicalAddr::from(vec![
+        .human_address(&CanonicalAddr::from(vec![
             1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]))
-        .unwrap()
-        .to_string();
+        .unwrap();
 
     // store whitelist elems
     let msg = ExecuteMsg::Whitelist {
         name: "bluna".to_string(),
         symbol: "bluna".to_string(),
         collateral_token: bluna_collat_token.clone(),
-        custody_contract: "custody_bluna".to_string(),
+        custody_contract: HumanAddr::from("custody_bluna"),
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), mock_env(), info.clone(), msg);
 
     let msg = ExecuteMsg::Whitelist {
         name: "batom".to_string(),
         symbol: "batom".to_string(),
         collateral_token: batom_collat_token.clone(),
-        custody_contract: "custody_batom".to_string(),
+        custody_contract: HumanAddr::from("custody_batom"),
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), mock_env(), info, msg);
+    let _res = handle(deps.as_mut(), mock_env(), info, msg);
 
     let msg = ExecuteMsg::LockCollateral {
         collaterals: vec![
-            (bluna_collat_token.clone(), Uint256::from(1000000u64)),
-            (batom_collat_token.clone(), Uint256::from(10000000u64)),
+            (bluna_collat_token.to_string().clone(), Uint256::from(1000000u64)),
+            (batom_collat_token.to_string().clone(), Uint256::from(10000000u64)),
         ],
     };
     let info = mock_info("addr0000", &[]);
-    let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(
         res.messages,
         vec![
@@ -937,12 +934,12 @@ fn unlock_collateral() {
     let msg = ExecuteMsg::Whitelist {
         name: "bluna".to_string(),
         symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
+        collateral_token: HumanAddr::from("bluna"),
         custody_contract: "custody_bluna".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg);
 
     let msg = ExecuteMsg::Whitelist {
         name: "batom".to_string(),
@@ -952,7 +949,7 @@ fn unlock_collateral() {
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), env.clone(), info, msg);
+    let _res = handle(deps.as_mut(), env.clone(), info, msg);
 
     let msg = ExecuteMsg::LockCollateral {
         collaterals: vec![
@@ -961,7 +958,7 @@ fn unlock_collateral() {
         ],
     };
     let info = mock_info("addr0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+    let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
     // Failed to unlock more than locked amount
     let msg = ExecuteMsg::UnlockCollateral {
@@ -970,7 +967,7 @@ fn unlock_collateral() {
             ("batom".to_string(), Uint256::from(10000001u64)),
         ],
     };
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg);
     match res {
         Err(ContractError::UnlockExceedsLocked {}) => (),
         _ => panic!("DO NOT ENTER HERE"),
@@ -1005,7 +1002,7 @@ fn unlock_collateral() {
     let msg = ExecuteMsg::UnlockCollateral {
         collaterals: vec![("bluna".to_string(), Uint256::one())],
     };
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg);
     match res {
         Err(ContractError::UnlockTooLarge(12599999400)) => (),
         _ => panic!("DO NOT ENTER HERE"),
@@ -1014,7 +1011,7 @@ fn unlock_collateral() {
     let msg = ExecuteMsg::UnlockCollateral {
         collaterals: vec![("batom".to_string(), Uint256::one())],
     };
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg);
     match res {
         Err(ContractError::UnlockTooLarge(12599998800)) => (),
         _ => panic!("DO NOT ENTER HERE"),
@@ -1040,7 +1037,7 @@ fn unlock_collateral() {
     let msg = ExecuteMsg::UnlockCollateral {
         collaterals: vec![("bluna".to_string(), Uint256::from(2u64))],
     };
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg);
     match res {
         Err(ContractError::UnlockTooLarge(12599998800)) => (),
         _ => panic!("DO NOT ENTER HERE"),
@@ -1050,7 +1047,7 @@ fn unlock_collateral() {
     let msg = ExecuteMsg::UnlockCollateral {
         collaterals: vec![("bluna".to_string(), Uint256::one())],
     };
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -1083,7 +1080,7 @@ fn unlock_collateral() {
             ("batom".to_string(), Uint256::from(1u128)),
         ],
     };
-    let res = execute(deps.as_mut(), env, info, msg).unwrap();
+    let res = handle(deps.as_mut(), env, info, msg).unwrap();
     assert_eq!(
         res.messages,
         vec![
@@ -1150,7 +1147,7 @@ fn liquidate_collateral() {
 
     let batom_collat_token = deps
         .api
-        .addr_humanize(&CanonicalAddr::from(vec![
+        .human_address(&CanonicalAddr::from(vec![
             1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]))
@@ -1159,7 +1156,7 @@ fn liquidate_collateral() {
 
     let bluna_collat_token = deps
         .api
-        .addr_humanize(&CanonicalAddr::from(vec![
+        .human_address(&CanonicalAddr::from(vec![
             1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]))
@@ -1175,7 +1172,7 @@ fn liquidate_collateral() {
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg);
 
     let msg = ExecuteMsg::Whitelist {
         name: "batom".to_string(),
@@ -1185,7 +1182,7 @@ fn liquidate_collateral() {
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), env.clone(), info, msg);
+    let _res = handle(deps.as_mut(), env.clone(), info, msg);
 
     let msg = ExecuteMsg::LockCollateral {
         collaterals: vec![
@@ -1194,7 +1191,7 @@ fn liquidate_collateral() {
         ],
     };
     let info = mock_info("addr0000", &[]);
-    let _res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    let _res = handle(deps.as_mut(), env.clone(), info, msg).unwrap();
 
     deps.querier.with_oracle_price(&[
         (
@@ -1224,7 +1221,7 @@ fn liquidate_collateral() {
         borrower: "addr0000".to_string(),
     };
     let info = mock_info("addr0001", &[]);
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone());
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone());
     match res {
         Err(ContractError::CannotLiquidateSafeLoan {}) => (),
         _ => panic!("DO NOT ENTER HERE"),
@@ -1232,7 +1229,7 @@ fn liquidate_collateral() {
 
     deps.querier
         .with_loan_amount(&[(&"addr0000".to_string(), &Uint256::from(12600000001u64))]);
-    let res = execute(deps.as_mut(), env.clone(), info, msg).unwrap();
+    let res = handle(deps.as_mut(), env.clone(), info, msg).unwrap();
     assert_eq!(
         res.messages,
         vec![
@@ -1324,12 +1321,12 @@ fn dynamic_rate_model() {
     let msg = ExecuteMsg::Whitelist {
         name: "bluna".to_string(),
         symbol: "bluna".to_string(),
-        collateral_token: "bluna".to_string(),
+        collateral_token: HumanAddr::from("bluna"),
         custody_contract: "custody_bluna".to_string(),
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), mock_env(), info.clone(), msg);
 
     let msg = ExecuteMsg::Whitelist {
         name: "batom".to_string(),
@@ -1339,14 +1336,14 @@ fn dynamic_rate_model() {
         max_ltv: Decimal256::percent(60),
     };
 
-    let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
+    let _res = handle(deps.as_mut(), mock_env(), info.clone(), msg);
 
     // only contract itself can execute update_epoch_state
     let msg = ExecuteMsg::UpdateEpochState {
         interest_buffer: Uint256::from(10000000000u128),
         distributed_interest: Uint256::from(1000000u128),
     };
-    let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
+    let res = handle(deps.as_mut(), mock_env(), info, msg.clone());
     match res {
         Err(ContractError::Unauthorized {}) => (),
         _ => panic!("DO NOT ENTER HERE"),
@@ -1362,7 +1359,7 @@ fn dynamic_rate_model() {
         &(Uint256::from(1000000u64), Decimal256::percent(120)),
     )]);
 
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
     assert_eq!(
         res.messages,
         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -1395,7 +1392,7 @@ fn dynamic_rate_model() {
     )]);
 
     env.block.height += 86400u64;
-    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
     assert_eq!(
         res.messages,
@@ -1460,7 +1457,7 @@ fn dynamic_rate_model() {
     )
     .unwrap();
     env.block.height += 86400u64;
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
     validate_deposit_rates(
         deps.as_mut(),
         Decimal256::from_ratio(1000644217821u64, 1000000000000000000u64),
@@ -1477,7 +1474,7 @@ fn dynamic_rate_model() {
     )
     .unwrap();
     env.block.height += 86400u64;
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
     validate_deposit_rates(
         deps.as_mut(),
         Decimal256::from_ratio(1001717914192u64, 1000000000000000000u64),
@@ -1494,7 +1491,7 @@ fn dynamic_rate_model() {
     )
     .unwrap();
     env.block.height += 86400u64;
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
     validate_deposit_rates(
         deps.as_mut(),
         Decimal256::from_ratio(1001503174896u64, 1000000000000000000u64),
@@ -1503,7 +1500,7 @@ fn dynamic_rate_model() {
     // lets hit lower threshold
     for _i in 1..200 {
         env.block.height += 86400u64;
-        let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
     }
     validate_deposit_rates(
         deps.as_mut(),
@@ -1521,7 +1518,7 @@ fn dynamic_rate_model() {
         )
         .unwrap();
         env.block.height += 86400u64;
-        let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+        let _res = handle(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
     }
     validate_deposit_rates(
         deps.as_mut(),

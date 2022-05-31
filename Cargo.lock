@@ -461,6 +461,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "moneymarket-distribution-model"
+version = "0.0.0"
+dependencies = [
+ "cosmwasm-bignumber",
+ "cosmwasm-schema",
+ "cosmwasm-std 0.13.2",
+ "cosmwasm-storage",
+ "moneymarket",
+ "schemars 0.7.6",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

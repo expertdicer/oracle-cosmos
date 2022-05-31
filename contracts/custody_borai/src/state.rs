@@ -90,7 +90,7 @@ pub fn read_borrowers(
             let (k, v) = item?;
             let borrower: CanonicalAddr = CanonicalAddr::from(k);
             Ok(BorrowerResponse {
-                borrower: deps.api.addr_humanize(&borrower)?.to_string(),
+                borrower: deps.api.human_address(&borrower)?.to_string(),
                 balance: v.balance,
                 spendable: v.spendable,
             })

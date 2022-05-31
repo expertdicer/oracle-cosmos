@@ -96,7 +96,7 @@ pub fn init(
 pub fn migrate(
     deps: DepsMut,
     env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     msg: MigrateMsg,
 ) -> StdResult<MigrateResponse> {
     store_dynrate_config(

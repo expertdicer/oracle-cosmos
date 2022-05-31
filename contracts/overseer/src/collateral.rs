@@ -1,6 +1,6 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, to_vec, CosmosMsg, Deps, DepsMut, Env, HandleResponse, HumanAddr, MessageInfo,
+    attr, to_binary, CosmosMsg, Deps, DepsMut, Env, HandleResponse, HumanAddr, MessageInfo,
     StdResult, WasmMsg,
 };
 

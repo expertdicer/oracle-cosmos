@@ -2,10 +2,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::Decimal256;
+use cosmwasm_std::{HumanAddr};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
-    pub owner: String,
+    pub owner: HumanAddr,
     pub emission_cap: Decimal256,
     pub emission_floor: Decimal256,
     pub increment_multiplier: Decimal256,
@@ -16,7 +17,7 @@ pub struct InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     UpdateConfig {
-        owner: Option<String>,
+        owner: Option<HumanAddr>,
         emission_cap: Option<Decimal256>,
         emission_floor: Option<Decimal256>,
         increment_multiplier: Option<Decimal256>,

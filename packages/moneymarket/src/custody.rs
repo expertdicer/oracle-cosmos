@@ -2,23 +2,24 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::Uint256;
+use cosmwasm_std::{HumanAddr};
 use cw20::Cw20ReceiveMsg;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct InstantiateMsg {
     /// owner address
-    pub owner: String,
+    pub owner: HumanAddr,
     /// bAsset token address
-    pub collateral_token: String,
+    pub collateral_token: HumanAddr,
     /// overseer contract address
-    pub overseer_contract: String,
+    pub overseer_contract: HumanAddr,
     /// market contract address
-    pub market_contract: String,
+    pub market_contract: HumanAddr,
     /// bAsset rewrad contract
-    pub reward_contract: String,
+    pub reward_contract: HumanAddr,
     /// liquidation contract address
-    pub liquidation_contract: String,
+    pub liquidation_contract: HumanAddr,
     /// Expected reward denom. If bAsset reward is not same with
     /// it, we try to convert the reward to the `stable_denom`.
     pub stable_denom: String,
@@ -37,21 +38,21 @@ pub enum ExecuteMsg {
 
     /// Update config
     UpdateConfig {
-        owner: Option<String>,
-        liquidation_contract: Option<String>,
+        owner: Option<HumanAddr>,
+        liquidation_contract: Option<HumanAddr>,
     },
     /// Make specified amount of tokens unspendable
-    LockCollateral { borrower: String, amount: Uint256 },
+    LockCollateral { borrower: HumanAddr, amount: Uint256 },
     /// Make specified amount of collateral tokens spendable
-    UnlockCollateral { borrower: String, amount: Uint256 },
+    UnlockCollateral { borrower: HumanAddr, amount: Uint256 },
     /// Claim bAsset rewards and distribute claimed rewards
     /// to market and overseer contracts
     DistributeRewards {},
 
     /// Liquidate collateral and send liquidated collateral to `to` address
     LiquidateCollateral {
-        liquidator: String,
-        borrower: String,
+        liquidator: HumanAddr,
+        borrower: HumanAddr,
         amount: Uint256,
     },
 
@@ -63,6 +64,8 @@ pub enum ExecuteMsg {
     /// If the amount is not given,
     /// return all spendable collateral
     WithdrawCollateral { amount: Option<Uint256> },
+
+    Reply {id: u64},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -81,10 +84,10 @@ pub struct MigrateMsg {}
 pub enum QueryMsg {
     Config {},
     Borrower {
-        address: String,
+        address: HumanAddr,
     },
     Borrowers {
-        start_after: Option<String>,
+        start_after: Option<HumanAddr>,
         limit: Option<u32>,
     },
 }

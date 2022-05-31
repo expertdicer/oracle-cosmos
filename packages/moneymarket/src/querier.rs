@@ -1,6 +1,5 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     to_binary, AllBalanceResponse, BalanceResponse, BankQuery, Coin, Deps, HumanAddr, QueryRequest,
@@ -83,7 +82,7 @@ pub fn query_supply(deps: Deps, contract_addr: HumanAddr) -> StdResult<Uint256> 
 //     ))
 // }
 
-pub fn deduct_tax(deps: Deps, coin: Coin) -> StdResult<Coin> {
+pub fn deduct_tax(_deps: Deps, coin: Coin) -> StdResult<Coin> {
     // let tax_amount = compute_tax(deps, &coin)?;
     let tax_amount: Uint256 = Uint256::zero();
     Ok(Coin {
