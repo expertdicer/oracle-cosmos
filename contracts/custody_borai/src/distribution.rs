@@ -1,14 +1,14 @@
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
     attr, to_binary, HumanAddr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest,
-    ReplyOn, HandleResponse, StdResult, CosmosMsg, Uint128, WasmMsg, WasmQuery,
+    HandleResponse, StdResult, Uint128, WasmMsg, WasmQuery,
 };
 
-use crate::contract::{CLAIM_REWARDS_OPERATION, SWAP_TO_STABLE_OPERATION};
 use crate::error::ContractError;
 use crate::external::handle::{RewardContractExecuteMsg, RewardContractQueryMsg};
 use crate::state::{read_config, BLunaAccruedRewardsResponse, Config};
 use moneymarket::querier::{query_all_balances, deduct_tax, query_balance};
+use moneymarket::custody::ExecuteMsg;
 
 // REWARD_THRESHOLD
 // This value is used as the minimum reward claim amount
@@ -37,17 +37,31 @@ pub fn distribute_rewards(
         return Ok(HandleResponse::default());
     }
 
-    // Do not emit the event logs here
-    Ok(
-        Response::new().add_submessages(vec![SubMsg::reply_on_success(
+    let contract_addr = env.contract.address;
+    
+    let res = HandleResponse {
+        attributes: vec![],
+        messages: vec![
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: reward_contract,
                 send: vec![],
                 msg: to_binary(&RewardContractExecuteMsg::ClaimRewards { recipient: None })?,
             }),
-            CLAIM_REWARDS_OPERATION,
-        )]),
-    )
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: contract_addr.clone(),
+                send: vec![],
+                msg: to_binary(&ExecuteMsg::SwapToStableDenom {})?,
+            }),
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr,
+                send: vec![],
+                msg: to_binary(&ExecuteMsg::DistributeHook {})?,
+            }),
+        ],
+        data: None,
+    };
+    // Do not emit the event logs here
+    Ok(res)
 }
 
 /// Apply swapped reward to global index
@@ -67,7 +81,7 @@ pub fn distribute_hook(
         contract_addr,
         config.stable_denom.to_string(),
     )?;
-    let mut messages: Vec<CosmosMsg<TerraMsgWrapper>> = vec![];
+    let mut messages: Vec<CosmosMsg<TerraMsgWrapper>> = vec![];      // fixme
     if !reward_amount.is_zero() {
         messages.push(CosmosMsg::Bank(BankMsg::Send {
             from_address: env.contract.address , // fixme            
@@ -99,25 +113,23 @@ pub fn distribute_hook(
 pub fn swap_to_stable_denom(
     deps: DepsMut,
     env: Env,
-) -> Result<Response<TerraMsgWrapper>, ContractError> {
+) -> Result<Response<TerraMsgWrapper>, ContractError> {         
     let config: Config = read_config(deps.storage)?;
 
     let contract_addr = env.contract.address.clone();
     let balances: Vec<Coin> = query_all_balances(deps.as_ref(), contract_addr)?;
-    let mut messages: Vec<SubMsg<TerraMsgWrapper>> = balances
+    let mut messages: Vec<CosmosMsg<TerraMsgWrapper>> = balances
         .iter()
         .filter(|x| x.denom != config.stable_denom)
-        .map(|coin: &Coin| SubMsg::new(create_swap_msg(coin.clone(), config.stable_denom.clone())))
+        .map(|coin: &Coin| SubMsg::new(create_swap_msg(coin.clone(), config.stable_denom.clone()))) // fixme
         .collect();
 
-    if let Some(last) = messages.last_mut() {
-        last.id = SWAP_TO_STABLE_OPERATION;
-        last.reply_on = ReplyOn::Success;
-    } else {
-        return distribute_hook(deps, env);
-    }
-
-    Ok(Response::new().add_submessages(messages))
+    let res = HandleResponse {
+        attributes: vec![],
+        messages: messages,
+        data: None,
+    };
+    Ok(res)
 }
 
 pub(crate) fn get_accrued_rewards(

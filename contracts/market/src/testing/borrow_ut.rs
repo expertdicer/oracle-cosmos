@@ -3,7 +3,7 @@ use crate::state::{store_state, BorrowerInfo, Config, State};
 use crate::testing::mock_querier::mock_dependencies;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, MOCK_CONTRACT_ADDR};
-use cosmwasm_std::{Api, Coin, Uint128};
+use cosmwasm_std::{Api, Coin, Uint128, HumanAddr};
 
 #[test]
 fn proper_compute_borrower_interest() {
@@ -76,14 +76,14 @@ fn proper_compute_interest() {
     let mut env = mock_env();
 
     let mock_config = Config {
-        contract_addr: deps.api.addr_canonicalize(MOCK_CONTRACT_ADDR).unwrap(),
-        owner_addr: deps.api.addr_canonicalize("owner").unwrap(),
-        aterra_contract: deps.api.addr_canonicalize("at-uusd").unwrap(),
-        interest_model: deps.api.addr_canonicalize("interest").unwrap(),
-        distribution_model: deps.api.addr_canonicalize("distribution").unwrap(),
-        distributor_contract: deps.api.addr_canonicalize("distributor").unwrap(),
-        collector_contract: deps.api.addr_canonicalize("collector").unwrap(),
-        overseer_contract: deps.api.addr_canonicalize("overseer").unwrap(),
+        contract_addr: deps.api.canonical_address(&HumanAddr(MOCK_CONTRACT_ADDR.to_string())).unwrap(),
+        owner_addr: deps.api.canonical_address(&HumanAddr("owner".to_string())).unwrap(),
+        aterra_contract: deps.api.canonical_address(&HumanAddr("at-uusd".to_string())).unwrap(),
+        interest_model: deps.api.canonical_address(&HumanAddr("interest".to_string())).unwrap(),
+        distribution_model: deps.api.canonical_address(&HumanAddr("distribution".to_string())).unwrap(),
+        distributor_contract: deps.api.canonical_address(&HumanAddr("distributor".to_string())).unwrap(),
+        collector_contract: deps.api.canonical_address(&HumanAddr("collector".to_string())).unwrap(),
+        overseer_contract: deps.api.canonical_address(&HumanAddr("overseer".to_string())).unwrap(),
         stable_denom: "uusd".to_string(),
         max_borrow_factor: Decimal256::one(),
     };

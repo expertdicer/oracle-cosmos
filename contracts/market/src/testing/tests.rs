@@ -1,4 +1,4 @@
-use crate::contract::{execute, instantiate, query, reply, INITIAL_DEPOSIT_AMOUNT};
+use crate::contract::{handle, init, query, reply, INITIAL_DEPOSIT_AMOUNT};
 use crate::error::ContractError;
 use crate::response::MsgInstantiateContractResponse;
 use crate::state::{read_borrower_infos, read_state, store_state, State};
@@ -8,18 +8,17 @@ use anchor_token::distributor::ExecuteMsg as FaucetExecuteMsg;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, BankMsg, Coin, ContractResult, CosmosMsg, Decimal, Reply,
-    SubMsg, SubMsgExecutionResponse, Uint128, WasmMsg,
+    attr, from_binary, to_binary, HumanAddr, CanonicalAddr, BankMsg, Coin, ContractResult, CosmosMsg, Decimal, Reply,
+    SubMsgExecutionResponse, Uint128, WasmMsg, 
 };
-use cw20::{Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
+use cw20::{Cw20Coin, Cw20HandleMsg, Cw20ReceiveMsg, MinterResponse};
 use moneymarket::market::{
     BorrowerInfoResponse, ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg,
-    StateResponse,
+    StateResponse, TokenInstantiateMsg,
 };
 use moneymarket::querier::deduct_tax;
 use protobuf::Message;
 use std::str::FromStr;
-use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
 
 #[test]
 fn proper_initialization() {
@@ -29,7 +28,7 @@ fn proper_initialization() {
     }]);
 
     let msg = InstantiateMsg {
-        owner_addr: "owner".to_string(),
+        owner_addr: HumanAddr("owner".to_string()),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
         anc_emission_rate: Decimal256::one(),
@@ -45,32 +44,29 @@ fn proper_initialization() {
     );
 
     // we can just call .unwrap() to assert this was a success
-    let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = init(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(
         res.messages,
-        vec![SubMsg::reply_on_success(
-            CosmosMsg::Wasm(WasmMsg::Instantiate {
-                admin: None,
+        vec![CosmosMsg::Wasm(WasmMsg::Instantiate {
                 code_id: 123u64,
-                funds: vec![],
-                label: "".to_string(),
+                send: vec![],
+                label: Some("".to_string()),
                 msg: to_binary(&TokenInstantiateMsg {
                     name: "Anchor Terra USD".to_string(),
                     symbol: "aUST".to_string(),
                     decimals: 6u8,
                     initial_balances: vec![Cw20Coin {
-                        address: MOCK_CONTRACT_ADDR.to_string(),
+                        address: CanonicalAddr(&HumanAddr(MOCK_CONTRACT_ADDR.to_string())),
                         amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
                     }],
                     mint: Some(MinterResponse {
-                        minter: MOCK_CONTRACT_ADDR.to_string(),
+                        minter: HumanAddr(MOCK_CONTRACT_ADDR.to_string()),
                         cap: None,
                     }),
                 })
                 .unwrap(),
             }),
-            1
-        )]
+        ]
     );
 
     // Register anchor token contract

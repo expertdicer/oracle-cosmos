@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, HumanAddr, CanonicalAddr, Binary, Deps, DepsMut, Env, MessageInfo, HandleResponse, 
+    attr, from_binary, to_binary, HumanAddr, Binary, Deps, DepsMut, Env, MessageInfo, HandleResponse, 
     InitResponse, MigrateResponse, StdResult,
 };
 
@@ -9,7 +9,7 @@ use crate::collateral::{
     deposit_collateral, liquidate_collateral, lock_collateral, query_borrower, query_borrowers,
     unlock_collateral, withdraw_collateral,
 };
-use crate::distribution::{distribute_hook, distribute_rewards, swap_to_stable_denom};
+use crate::distribution::{distribute_rewards};
 use crate::error::ContractError;
 use crate::state::{read_config, store_config, Config};
 
@@ -57,7 +57,6 @@ pub fn handle(
             owner,
             liquidation_contract,
         } => {
-            let api = deps.api;
             update_config(
                 deps,
                 info,
@@ -80,21 +79,6 @@ pub fn handle(
         } => {
             liquidate_collateral(deps, info, liquidator, borrower, amount)
         }
-        ExecuteMsg::Reply {id} => reply(deps, env, id)
-    }
-}
-
-pub fn reply(
-    deps: DepsMut,
-    env: Env,
-    id: u64,
-) -> Result<HandleResponse, ContractError> {
-    match id {
-        // ClaimRewards callback
-        CLAIM_REWARDS_OPERATION => swap_to_stable_denom(deps, env),
-        // Swap to stable callback
-        SWAP_TO_STABLE_OPERATION => distribute_hook(deps, env),
-        _ => Err(ContractError::InvalidReplyId {}),
     }
 }
 

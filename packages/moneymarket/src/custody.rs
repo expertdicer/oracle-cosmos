@@ -65,7 +65,9 @@ pub enum ExecuteMsg {
     /// return all spendable collateral
     WithdrawCollateral { amount: Option<Uint256> },
 
-    Reply {id: u64},
+    SwapToStableDenom {},
+
+    DistributeHook {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

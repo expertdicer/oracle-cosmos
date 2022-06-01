@@ -9,10 +9,9 @@ use cosmwasm_std::{
     attr, to_binary, HumanAddr, CanonicalAddr, CosmosMsg, Deps, DepsMut, MessageInfo, HandleResponse,
     StdResult, WasmMsg,
 };
-use cw20::Cw20ExecuteMsg;
+use cw20::Cw20HandleMsg;
 use moneymarket::custody::{BorrowerResponse, BorrowersResponse};
 use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
-use terra_cosmwasm::TerraMsgWrapper;
 
 /// Deposit new collateral
 /// Executor: bAsset token contract
@@ -84,8 +83,8 @@ pub fn withdraw_collateral(
                     .api
                     .human_address(&config.collateral_token)?,
                 send: vec![],
-                msg: to_binary(&Cw20ExecuteMsg::Transfer {
-                    recipient: borrower.to_string(),
+                msg: to_binary(&Cw20HandleMsg::Transfer {
+                    recipient: borrower,
                     amount: amount.into(),
                 })?,
             }),
@@ -207,13 +206,12 @@ pub fn liquidate_collateral(
                     .api
                     .human_address(&config.collateral_token)?,
                 send: vec![],
-                msg: to_binary(&Cw20ExecuteMsg::Send {
+                msg: to_binary(&Cw20HandleMsg::Send {
                     contract: deps
                         .api
-                        .human_address(&config.liquidation_contract)?
-                        .to_string(),
+                        .human_address(&config.liquidation_contract)?,
                     amount: amount.into(),
-                    msg: to_binary(&LiquidationCw20HookMsg::ExecuteBid {
+                    msg: Some(to_binary(&LiquidationCw20HookMsg::ExecuteBid {
                         liquidator: liquidator.to_string(),
                         fee_address: Some(
                             deps.api
@@ -222,7 +220,7 @@ pub fn liquidate_collateral(
                         repay_address: Some(
                             deps.api.human_address(&config.market_contract)?.to_string(),
                         ),
-                    })?,
+                    })?),
                 })?,
             }),
         ],
