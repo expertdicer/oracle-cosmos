@@ -29,6 +29,7 @@ pub struct TokenInstantiateMsg {
     pub decimals: u8,
     pub initial_balances: Vec<Cw20Coin>,
     pub mint: Option<MinterResponse>,
+    pub init_hook: Option<InitHook>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -101,10 +102,14 @@ pub enum ExecuteMsg {
         to: Option<HumanAddr>,
     },
 
-    Reply {  // fixme
-        id: u64,
-        result: SubMsgResult
-    }
+    RegisterATerra {},
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // huhu
+#[serde(rename_all = "snake_case")]
+pub struct InitHook {
+    pub msg: Binary,
+    pub contract_addr: HumanAddr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // fixme

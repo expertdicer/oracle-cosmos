@@ -8,7 +8,6 @@ use crate::borrow::{
 use crate::deposit::{compute_exchange_rate_raw, deposit_stable, redeem_stable};
 use crate::error::ContractError;
 use crate::querier::{query_borrow_rate, query_target_deposit_rate};
-use crate::response::MsgInstantiateContractResponse;
 use crate::state::{read_config, read_state, store_config, store_state, Config, State};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -20,9 +19,8 @@ use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse};
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{
     ConfigResponse, Cw20HookMsg, EpochStateResponse, ExecuteMsg, InstantiateMsg, MigrateMsg,
-    QueryMsg, StateResponse,TokenInstantiateMsg, SubMsgResult,
+    QueryMsg, StateResponse,TokenInstantiateMsg, InitHook,
 };
-use protobuf::Message;
 use moneymarket::querier::{deduct_tax, query_balance, query_supply};
 
 pub const INITIAL_DEPOSIT_AMOUNT: u128 = 1000000;
@@ -98,41 +96,18 @@ pub fn init(
                         amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
                     }],
                     mint: Some(MinterResponse {
-                        minter: env.contract.address,
+                        minter: HumanAddr(env.contract.address.to_string()),
                         cap: None,
-                    })
+                    }),
+                    init_hook: Some(InitHook {
+                        contract_addr: env.contract.address,
+                        msg: to_binary(&ExecuteMsg::RegisterATerra {})?,
+                    }),
                 })?,
             }),
         ],
     };
     Ok(res) 
-    // Ok( 
-    //     Response::new().add_submessages(vec![SubMsg::reply_on_success(
-    //         CosmosMsg::Wasm(WasmMsg::Instantiate {
-    //             code_id: msg.aterra_code_id,
-    //             send: vec![],
-    //             label: Some("".to_string()),
-    //             msg: to_binary(&TokenInstantiateMsg {
-    //                 name: format!("Anchor Terra {}", msg.stable_denom[1..].to_uppercase()),
-    //                 symbol: format!(
-    //                     "a{}T",
-    //                     msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
-    //                 ),
-    //                 decimals: 6u8,
-    //                 initial_balances: vec![Cw20Coin {
-    //                     address: CanonicalAddr(to_binary(&env.contract.address)?),
-    //                     amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
-    //                 }],
-    //                 mint: Some(MinterResponse {
-    //                     minter: HumanAddr(env.contract.address.to_string()),
-    //                     cap: None,
-    //                 }),
-    //             })?,
-    //         }),
-    //         1,
-    //     )]),
-    // )  
-    // fixme
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -144,6 +119,7 @@ pub fn handle(
 ) -> Result<HandleResponse, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
+        ExecuteMsg::RegisterATerra{} => register_aterra(deps, env, info),
         ExecuteMsg::RegisterContracts {
             overseer_contract,
             interest_model,
@@ -217,32 +193,9 @@ pub fn handle(
         ExecuteMsg::ClaimRewards { to } => {
             claim_rewards(deps, env, info, to)
         }
-        ExecuteMsg::Reply { id, result } => {
-            reply(deps, env, id, result)
-        }
     }
 }
 
-pub fn reply(deps: DepsMut, _env: Env, id: u64, result: SubMsgResult ) -> Result<HandleResponse, ContractError> {
-    match id {
-        1 => {
-            // get new token's contract address
-            let res: MsgInstantiateContractResponse = Message::parse_from_bytes(
-                result.unwrap().data.unwrap().as_slice(),
-            )
-            .map_err(|_| {
-                ContractError::Std(StdError::parse_err(
-                    "MsgInstantiateContractResponse",
-                    "failed to parse data",
-                ))
-            })?;
-            let token_addr = HumanAddr(res.get_contract_address().to_string());
-
-            register_aterra(deps, token_addr)
-        }
-        _ => Err(ContractError::InvalidReplyId {}),
-    }
-}
 
 pub fn receive_cw20(
     deps: DepsMut,
@@ -265,19 +218,19 @@ pub fn receive_cw20(
     }
 }
 
-pub fn register_aterra(deps: DepsMut, token_addr: HumanAddr) -> Result<HandleResponse, ContractError> {
+pub fn register_aterra(deps: DepsMut, _env: Env, info: MessageInfo,) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     if config.aterra_contract != CanonicalAddr::from(vec![]) {
         return Err(ContractError::Unauthorized {});
     }
 
-    config.aterra_contract = deps.api.canonical_address(&token_addr)?;
+    config.aterra_contract = deps.api.canonical_address(&info.sender)?;
     store_config(deps.storage, &config)?;
 
     let res = HandleResponse {
         attributes: vec![
             attr("action", "register_aterra"),
-            attr("aterra_contract", token_addr),
+            attr("aterra_contract", info.sender),
         ],
         messages: vec![],
         data: None,
