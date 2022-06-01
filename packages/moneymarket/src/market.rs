@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cw20::Cw20ReceiveMsg;
 use cw20::{Cw20Coin, MinterResponse};
-use cosmwasm_std::{HumanAddr};
+use cosmwasm_std::{HumanAddr, Attribute, Binary};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -100,6 +100,78 @@ pub enum ExecuteMsg {
     ClaimRewards {
         to: Option<HumanAddr>,
     },
+
+    Reply {  // fixme
+        id: u64,
+        result: SubMsgResult
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // fixme
+#[serde(rename_all = "snake_case")]
+pub enum SubMsgResult {
+    Ok(SubMsgResponse),
+    #[serde(rename = "error")]
+    Err(String),
+}
+
+// Implementations here mimic the Result API and should be implemented via a conversion to Result
+// to ensure API consistency
+impl SubMsgResult {
+    /// Converts a `SubMsgResult<S>` to a `Result<S, String>` as a convenient way
+    /// to access the full Result API.
+    pub fn into_result(self) -> Result<SubMsgResponse, String> {
+        Result::<SubMsgResponse, String>::from(self)
+    }
+
+    pub fn unwrap(self) -> SubMsgResponse {
+        self.into_result().unwrap()
+    }
+
+    pub fn unwrap_err(self) -> String {
+        self.into_result().unwrap_err()
+    }
+
+    pub fn is_ok(&self) -> bool {
+        matches!(self, SubMsgResult::Ok(_))
+    }
+
+    pub fn is_err(&self) -> bool {
+        matches!(self, SubMsgResult::Err(_))
+    }
+}
+
+impl<E: ToString> From<Result<SubMsgResponse, E>> for SubMsgResult {
+    fn from(original: Result<SubMsgResponse, E>) -> SubMsgResult {
+        match original {
+            Ok(value) => SubMsgResult::Ok(value),
+            Err(err) => SubMsgResult::Err(err.to_string()),
+        }
+    }
+}
+
+impl From<SubMsgResult> for Result<SubMsgResponse, String> {
+    fn from(original: SubMsgResult) -> Result<SubMsgResponse, String> {
+        match original {
+            SubMsgResult::Ok(value) => Ok(value),
+            SubMsgResult::Err(err) => Err(err),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // fixme
+#[serde(rename_all = "snake_case")]
+pub struct SubMsgResponse {
+    pub events: Vec<Event>,
+    pub data: Option<Binary>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // fixme
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub struct Event {
+    pub ty: String,
+    pub attributes: Vec<Attribute>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

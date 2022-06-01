@@ -7,8 +7,9 @@ use cosmwasm_std::{
 use crate::borrow::{compute_interest, compute_reward};
 use crate::error::ContractError;
 use crate::state::{read_config, read_state, store_state, Config, State};
+use moneymarket::querier::{deduct_tax, query_balance, query_supply};
 
-use cw20::Cw20ExecuteMsg;
+use cw20::Cw20HandleMsg;
 
 pub fn deposit_stable(
     deps: DepsMut,
@@ -51,15 +52,15 @@ pub fn deposit_stable(
     let res = HandleResponse {
         attributes: vec![
             attr("action", "deposit_stable"),
-            attr("depositor", info.sender),
+            attr("depositor", info.sender.to_string()),
             attr("mint_amount", mint_amount),
             attr("deposit_amount", deposit_amount),
         ],
         messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps.api.human_address(&config.aterra_contract)?,
             send: vec![],
-            msg: to_binary(&Cw20ExecuteMsg::Mint {
-                recipient: info.sender.to_string(),
+            msg: to_binary(&Cw20HandleMsg::Mint {
+                recipient: info.sender,
                 amount: mint_amount.into(),
             })?,
         }),
@@ -86,9 +87,10 @@ pub fn redeem_stable(
     let exchange_rate = compute_exchange_rate(deps.as_ref(), &config, &state, None)?;
     let redeem_amount = Uint256::from(burn_amount) * exchange_rate;
 
+    let query_target = HumanAddr(env.contract.address.to_string());
     let current_balance = query_balance(
         deps.as_ref(),
-        env.contract.address,
+        query_target,
         config.stable_denom.to_string(),
     )?;
 
@@ -107,12 +109,12 @@ pub fn redeem_stable(
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: deps.api.human_address(&config.aterra_contract)?,
                 send: vec![],
-                msg: to_binary(&Cw20ExecuteMsg::Burn {
+                msg: to_binary(&Cw20HandleMsg::Burn {
                     amount: burn_amount,
                 })?,
             }),
             CosmosMsg::Bank(BankMsg::Send {
-                from_address: HumanAddr::from(env.contract.address),
+                from_address: env.contract.address,
                 to_address: sender,
                 amount: vec![deduct_tax(
                     deps.as_ref(),

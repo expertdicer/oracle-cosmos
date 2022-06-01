@@ -20,9 +20,10 @@ use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse};
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{
     ConfigResponse, Cw20HookMsg, EpochStateResponse, ExecuteMsg, InstantiateMsg, MigrateMsg,
-    QueryMsg, StateResponse,TokenInstantiateMsg,
+    QueryMsg, StateResponse,TokenInstantiateMsg, SubMsgResult,
 };
 use protobuf::Message;
+use moneymarket::querier::{deduct_tax, query_balance, query_supply};
 
 pub const INITIAL_DEPOSIT_AMOUNT: u128 = 1000000;
 
@@ -78,8 +79,9 @@ pub fn init(
         },
     )?;
 
-    Ok(
-        Response::new().add_submessages(vec![SubMsg::reply_on_success(
+    let res = InitResponse {
+        attributes: vec![],
+        messages: vec![
             CosmosMsg::Wasm(WasmMsg::Instantiate {
                 code_id: msg.aterra_code_id,
                 send: vec![],
@@ -96,14 +98,41 @@ pub fn init(
                         amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
                     }],
                     mint: Some(MinterResponse {
-                        minter: HumanAddr(env.contract.address.to_string()),
+                        minter: env.contract.address,
                         cap: None,
-                    }),
+                    })
                 })?,
             }),
-            1,
-        )]),
-    )
+        ],
+    };
+    Ok(res) 
+    // Ok( 
+    //     Response::new().add_submessages(vec![SubMsg::reply_on_success(
+    //         CosmosMsg::Wasm(WasmMsg::Instantiate {
+    //             code_id: msg.aterra_code_id,
+    //             send: vec![],
+    //             label: Some("".to_string()),
+    //             msg: to_binary(&TokenInstantiateMsg {
+    //                 name: format!("Anchor Terra {}", msg.stable_denom[1..].to_uppercase()),
+    //                 symbol: format!(
+    //                     "a{}T",
+    //                     msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
+    //                 ),
+    //                 decimals: 6u8,
+    //                 initial_balances: vec![Cw20Coin {
+    //                     address: CanonicalAddr(to_binary(&env.contract.address)?),
+    //                     amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
+    //                 }],
+    //                 mint: Some(MinterResponse {
+    //                     minter: HumanAddr(env.contract.address.to_string()),
+    //                     cap: None,
+    //                 }),
+    //             })?,
+    //         }),
+    //         1,
+    //     )]),
+    // )  
+    // fixme
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -163,7 +192,6 @@ pub fn handle(
         ),
         ExecuteMsg::DepositStable {} => deposit_stable(deps, env, info),
         ExecuteMsg::BorrowStable { borrow_amount, to } => {
-            let api = deps.api;
             borrow_stable(
                 deps,
                 env,
@@ -189,16 +217,18 @@ pub fn handle(
         ExecuteMsg::ClaimRewards { to } => {
             claim_rewards(deps, env, info, to)
         }
+        ExecuteMsg::Reply { id, result } => {
+            reply(deps, env, id, result)
+        }
     }
 }
 
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<(), ContractError> {
-    match msg.id {
+pub fn reply(deps: DepsMut, _env: Env, id: u64, result: SubMsgResult ) -> Result<HandleResponse, ContractError> {
+    match id {
         1 => {
             // get new token's contract address
             let res: MsgInstantiateContractResponse = Message::parse_from_bytes(
-                msg.result.unwrap().data.unwrap().as_slice(),
+                result.unwrap().data.unwrap().as_slice(),
             )
             .map_err(|_| {
                 ContractError::Std(StdError::parse_err(
@@ -206,7 +236,7 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<(), ContractError> 
                     "failed to parse data",
                 ))
             })?;
-            let token_addr = Addr::unchecked(res.get_contract_address());
+            let token_addr = HumanAddr(res.get_contract_address().to_string());
 
             register_aterra(deps, token_addr)
         }
@@ -422,7 +452,7 @@ pub fn execute_epoch_operations(
             attr("total_reserves", total_reserves),
             attr("anc_emission_rate", state.anc_emission_rate.to_string()),
         ],
-        messages: vec![],
+        messages: messages,
         data: None,
     };
     Ok(res)
@@ -584,6 +614,6 @@ pub fn query_epoch_state(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(_deps: DepsMut, _env: Env, info: MessageInfo, _msg: MigrateMsg) -> StdResult<MigrateResponse> {
+pub fn migrate(_deps: DepsMut, _env: Env, _info: MessageInfo, _msg: MigrateMsg) -> StdResult<MigrateResponse> {
     Ok(MigrateResponse::default())
 }

@@ -15,6 +15,7 @@ use crate::state::{
     read_borrower_info, read_borrower_infos, read_config, read_state, store_borrower_info,
     store_state, BorrowerInfo, Config, State,
 };
+use moneymarket::querier::{deduct_tax, query_balance, query_supply};
 
 pub fn borrow_stable(
     deps: DepsMut,
@@ -52,10 +53,11 @@ pub fn borrow_stable(
             borrow_limit_res.borrow_limit.into(),
         ));
     }
-
+    
+    let query_target = HumanAddr(env.contract.address.to_string());
     let current_balance = query_balance(
         deps.as_ref(),
-        env.contract.address,
+        query_target,
         config.stable_denom.to_string(),
     )?;
 
@@ -67,23 +69,28 @@ pub fn borrow_stable(
     store_state(deps.storage, &state)?;
     store_borrower_info(deps.storage, &borrower_raw, &liability)?;
 
-    Ok(Response::new()
-        .add_message(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address,
-            to_address: to.unwrap_or_else(|| borrower.clone()),
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom,
-                    amount: borrow_amount.into(),
-                },
-            )?],
-        }))
-        .add_attributes(vec![
+    let res = HandleResponse {
+        attributes: vec![
             attr("action", "borrow_stable"),
-            attr("borrower", borrower),
+            attr("borrower", HumanAddr(borrower.to_string())),
             attr("borrow_amount", borrow_amount),
-        ]))
+        ],
+        messages: vec![ 
+            CosmosMsg::Bank(BankMsg::Send {
+                from_address: env.contract.address,
+                to_address: to.unwrap_or_else(|| borrower.clone()),
+                amount: vec![deduct_tax(
+                    deps.as_ref(),
+                    Coin {
+                        denom: config.stable_denom,
+                        amount: borrow_amount.into(),
+                    },
+                )?],
+            }),
+        ],
+        data: None,
+    };
+    Ok(res)
 }
 
 pub fn repay_stable_from_liquidation(
@@ -161,7 +168,7 @@ pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Handle
         // Payback left repay amount to sender
         messages.push(CosmosMsg::Bank(BankMsg::Send {
             from_address: env.contract.address,
-            to_address: borrower,
+            to_address: HumanAddr(borrower.to_string()),
             amount: vec![deduct_tax(
                 deps.as_ref(),
                 Coin {
@@ -243,7 +250,7 @@ pub fn claim_rewards(
             attr("action", "claim_rewards"),
             attr("claim_amount", claim_amount),
         ],
-        messages: vec![],
+        messages: messages,
         data: None,
     };
     Ok(res)
