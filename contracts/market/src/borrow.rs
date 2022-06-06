@@ -193,7 +193,7 @@ pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Handle
             attr("borrower", borrower),
             attr("repay_amount", repay_amount),
         ],
-        messages: vec![],
+        messages: messages,
         data: None,
     };
     Ok(res)

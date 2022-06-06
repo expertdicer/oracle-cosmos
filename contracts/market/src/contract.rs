@@ -81,13 +81,13 @@ pub fn init(
         attributes: vec![],
         messages: vec![
             CosmosMsg::Wasm(WasmMsg::Instantiate {
-                code_id: msg.aterra_code_id,
+                code_id: msg.orchai_code_id,
                 send: vec![],
                 label: Some("".to_string()),
                 msg: to_binary(&TokenInstantiateMsg {
-                    name: format!("Anchor Terra {}", msg.stable_denom[1..].to_uppercase()),
+                    name: format!("Orchai {}", msg.stable_denom[1..].to_uppercase()),
                     symbol: format!(
-                        "a{}T",
+                        "o{}T",
                         msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
                     ),
                     decimals: 6u8,
