@@ -1,0 +1,31 @@
+[package]
+name = "oraiswap"
+version = "2.4.1"
+authors = ["Terraform Labs, PTE."]
+edition = "2018"
+description = "Common oraiswap types"
+license = "Apache-2.0"
+repository = "https://github.com/oraiswap/oraiswap"
+homepage = "https://oraiswap.io"
+documentation = "https://docs.oraiswap.io"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+# for quicker tests, cargo test --lib
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+
+[dependencies]
+cw20 = { version = "0.5.0" }
+cosmwasm-storage = { version = "0.13.2" }
+cosmwasm-std = { version = "0.13.2" }
+schemars = "0.7"
+bigint = "4"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.21" }
+
+[dev-dependencies]
+cosmwasm-schema = "0.13.2"
+
+

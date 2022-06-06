@@ -9,11 +9,13 @@ use crate::external::handle::{RewardContractExecuteMsg, RewardContractQueryMsg};
 use crate::state::{read_config, BLunaAccruedRewardsResponse, Config};
 use moneymarket::querier::{query_all_balances, deduct_tax, query_balance};
 use moneymarket::custody::ExecuteMsg;
+use oraiswap::router::SwapOperation;
+use oraiswap::asset::AssetInfo;
 
 // REWARD_THRESHOLD
 // This value is used as the minimum reward claim amount
 // thus if a user's reward is less than 1 ust do not send the ClaimRewards msg
-const REWARDS_THRESHOLD: Uint128 = Uint128::from(1000000u128);
+// const REWARDS_THRESHOLD: Uint128 = Uint128::from(1000000u128); fixme
 
 /// Request withdraw reward operation to
 /// reward contract and execute `distribute_hook`
@@ -28,14 +30,15 @@ pub fn distribute_rewards(
         return Err(ContractError::Unauthorized {});
     }
 
-    let contract_addr = env.contract.address;
+    let contract_addr = env.contract.address.clone();
     let reward_contract = deps.api.human_address(&config.reward_contract)?;
 
-    let accrued_rewards =
-        get_accrued_rewards(deps.as_ref(), reward_contract.clone(), contract_addr)?;
-    if accrued_rewards < REWARDS_THRESHOLD {
-        return Ok(HandleResponse::default());
-    }
+    // let accrued_rewards =
+    //     get_accrued_rewards(deps.as_ref(), reward_contract.clone(), contract_addr)?;
+    // if accrued_rewards < REWARDS_THRESHOLD {
+    //     return Ok(HandleResponse::default());
+    // } 
+    // fixme
 
     let contract_addr = env.contract.address;
     
@@ -70,7 +73,6 @@ pub fn distribute_hook(
     deps: DepsMut,
     env: Env,
 ) -> Result<HandleResponse, ContractError> {
-    let contract_addr = env.contract.address;
     let config: Config = read_config(deps.storage)?;
     let overseer_contract = deps.api.human_address(&config.overseer_contract)?;
 
@@ -78,13 +80,13 @@ pub fn distribute_hook(
     // = (0 + reward_amount) - 0 = reward_amount = balance
     let reward_amount: Uint256 = query_balance(
         deps.as_ref(),
-        contract_addr,
+        env.contract.address.clone(),
         config.stable_denom.to_string(),
     )?;
-    let mut messages: Vec<CosmosMsg<TerraMsgWrapper>> = vec![];      // fixme
+    let mut messages: Vec<CosmosMsg> = vec![];      // fixme
     if !reward_amount.is_zero() {
         messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address , // fixme            
+            from_address: env.contract.address ,         
             to_address: overseer_contract,
             amount: vec![deduct_tax(
                 deps.as_ref(),
@@ -113,16 +115,18 @@ pub fn distribute_hook(
 pub fn swap_to_stable_denom(
     deps: DepsMut,
     env: Env,
-) -> Result<Response<TerraMsgWrapper>, ContractError> {         
+) -> Result<HandleResponse<>, ContractError> {         
     let config: Config = read_config(deps.storage)?;
-
+    let swap_contract = deps.api.human_address(&config.swap_contract)?;
     let contract_addr = env.contract.address.clone();
     let balances: Vec<Coin> = query_all_balances(deps.as_ref(), contract_addr)?;
-    let mut messages: Vec<CosmosMsg<TerraMsgWrapper>> = balances
+    let mut messages: Vec<CosmosMsg> = balances
         .iter()
-        .filter(|x| x.denom != config.stable_denom)
-        .map(|coin: &Coin| SubMsg::new(create_swap_msg(coin.clone(), config.stable_denom.clone()))) // fixme
-        .collect();
+        .filter(|x| x.denom != config.stable_denom.clone())
+        .map(|coin: &Coin| { create_swap_msg(&coin, config.stable_denom.as_str(), swap_contract.clone())}
+        )// fixme
+        .collect::<StdResult<Vec<CosmosMsg>>>()?;
+
 
     let res = HandleResponse {
         attributes: vec![],
@@ -130,6 +134,17 @@ pub fn swap_to_stable_denom(
         data: None,
     };
     Ok(res)
+}
+
+pub fn create_swap_msg(offer_coin: &Coin, ask_denom: &str, swap_contract:  HumanAddr) -> StdResult<CosmosMsg> {
+    Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: swap_contract,
+            send: vec![],                   
+            msg: to_binary(&SwapOperation::OraiSwap {
+                offer_asset_info: AssetInfo::NativeToken{denom: offer_coin.denom.clone() },
+                ask_asset_info: AssetInfo::NativeToken{denom: ask_denom.to_string() },
+        })?,    
+    }))
 }
 
 pub(crate) fn get_accrued_rewards(

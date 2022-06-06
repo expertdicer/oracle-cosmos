@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
     /// stable coin denom used to borrow & repay
     pub stable_denom: String,
     /// Anchor token code ID used to instantiate
-    pub aterra_code_id: u64,
+    pub orchai_code_id: u64,
     /// Anchor token distribution speed
     pub anc_emission_rate: Decimal256,
     /// Maximum allowed borrow rate over deposited stable balance

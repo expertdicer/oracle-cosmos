@@ -100,7 +100,7 @@ fn register_feeder() {
             deps.as_ref(),
             mock_env(),
             QueryMsg::Feeder {
-                asset: "mAAPL".to_string(),
+                asset: HumanAddr::from("mAAPL"),
             },
         )
         .unwrap(),
@@ -109,8 +109,8 @@ fn register_feeder() {
     assert_eq!(
         feeder_res,
         FeederResponse {
-            asset: "mAAPL".to_string(),
-            feeder: "feeder0000".to_string(),
+            asset: HumanAddr::from("mAAPL"),
+            feeder: HumanAddr::from("feeder0000"),
         }
     );
 }

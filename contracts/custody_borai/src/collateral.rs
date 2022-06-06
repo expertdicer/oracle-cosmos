@@ -196,7 +196,7 @@ pub fn liquidate_collateral(
     let res = HandleResponse {
         attributes: vec![
             attr("action", "liquidate_collateral"),
-            attr("liquidator", liquidator),
+            attr("liquidator", liquidator.clone()),
             attr("borrower", borrower),
             attr("amount", amount),
         ],

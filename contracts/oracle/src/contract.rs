@@ -148,11 +148,11 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     Ok(resp)
 }
 
-fn query_feeder(deps: Deps, asset: String) -> StdResult<FeederResponse> {
+fn query_feeder(deps: Deps, asset: HumanAddr) -> StdResult<FeederResponse> {
     let feeder = read_feeder(deps.storage, &asset)?;
     let resp = FeederResponse {
         asset,
-        feeder: deps.api.human_address(&feeder)?.to_string(),
+        feeder: deps.api.human_address(&feeder)?,
     };
 
     Ok(resp)

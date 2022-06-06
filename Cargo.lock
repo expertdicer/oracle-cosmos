@@ -222,6 +222,7 @@ dependencies = [
  "cosmwasm-storage",
  "cw20",
  "moneymarket",
+ "oraiswap",
  "schemars 0.7.6",
  "serde",
  "thiserror",
@@ -533,6 +534,20 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "oraiswap"
+version = "2.4.1"
+dependencies = [
+ "bigint",
+ "cosmwasm-schema",
+ "cosmwasm-std 0.13.2",
+ "cosmwasm-storage",
+ "cw20",
+ "schemars 0.7.6",
+ "serde",
+ "thiserror",
+]
 
 [[package]]
 name = "orchai-oracle"

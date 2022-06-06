@@ -20,6 +20,8 @@ pub struct InstantiateMsg {
     pub reward_contract: HumanAddr,
     /// liquidation contract address
     pub liquidation_contract: HumanAddr,
+    /// oraiswap contract address
+    pub swap_contract: HumanAddr, // fixmed
     /// Expected reward denom. If bAsset reward is not same with
     /// it, we try to convert the reward to the `stable_denom`.
     pub stable_denom: String,
