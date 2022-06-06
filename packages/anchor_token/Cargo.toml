@@ -18,7 +18,6 @@ cw20 = "0.5.0"
 cosmwasm-bignumber = {path = "../bignumber", version = "2.3.0"}
 cosmwasm-std = "0.13.2" 
 cosmwasm-storage = { version = "0.13.2", features = ["iterator"] }
-terra-cosmwasm = "2.2.0"
 schemars = "0.7"
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 

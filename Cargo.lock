@@ -12,7 +12,6 @@ dependencies = [
  "cw20",
  "schemars 0.7.6",
  "serde",
- "terra-cosmwasm",
 ]
 
 [[package]]
@@ -229,6 +228,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw-storage-plus"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1263f0a3d95efef271076a4a0aad5779324b50bd8346f130984e880e055fd0d"
+dependencies = [
+ "cosmwasm-std 0.13.2",
+ "schemars 0.7.6",
+ "serde",
+]
+
+[[package]]
 name = "cw0"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -241,6 +251,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw2"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "586017e1bc0c4eff545850f3955249540c78153403a20cd1dae542b217359baf"
+dependencies = [
+ "cosmwasm-std 0.13.2",
+ "cw-storage-plus",
+ "schemars 0.7.6",
+ "serde",
+]
+
+[[package]]
 name = "cw20"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -250,6 +272,22 @@ dependencies = [
  "cw0",
  "schemars 0.7.6",
  "serde",
+]
+
+[[package]]
+name = "cw20-base"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f5139186c105c6d8f7350da6ac8ea46bc28542e4b5a738e64ce4d77fbf74d17"
+dependencies = [
+ "cosmwasm-std 0.13.2",
+ "cosmwasm-storage",
+ "cw0",
+ "cw2",
+ "cw20",
+ "schemars 0.7.6",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -504,6 +542,26 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std 0.13.2",
  "cosmwasm-storage",
+ "moneymarket",
+ "schemars 0.7.6",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "orchai_token"
+version = "0.1.0"
+dependencies = [
+ "anchor-token",
+ "cosmwasm-bignumber",
+ "cosmwasm-schema",
+ "cosmwasm-std 0.13.2",
+ "cosmwasm-storage",
+ "cw-storage-plus",
+ "cw0",
+ "cw2",
+ "cw20",
+ "cw20-base",
  "moneymarket",
  "schemars 0.7.6",
  "serde",
