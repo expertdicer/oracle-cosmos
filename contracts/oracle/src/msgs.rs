@@ -30,7 +30,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     Config {},
     Feeder {
-        asset: String,
+        asset: HumanAddr,
     },
     Price {
         base: String,
@@ -52,8 +52,8 @@ pub struct ConfigResponse {
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct FeederResponse {
-    pub asset: String,
-    pub feeder: String,
+    pub asset: HumanAddr,
+    pub feeder: HumanAddr,
 }
 
 // We define a custom struct for each query response

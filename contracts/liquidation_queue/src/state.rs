@@ -30,6 +30,7 @@ pub struct Config {
     pub price_timeframe: u64,
     pub waiting_period: u64,
     pub overseer: CanonicalAddr,
+    pub oraiswap_oracle: CanonicalAddr,
 }
 
 pub fn store_config(storage: &mut dyn Storage, config: &Config) -> StdResult<()> {

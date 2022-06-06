@@ -9,7 +9,7 @@ use crate::collateral::{
     deposit_collateral, liquidate_collateral, lock_collateral, query_borrower, query_borrowers,
     unlock_collateral, withdraw_collateral,
 };
-use crate::distribution::{distribute_rewards};
+use crate::distribution::{distribute_rewards, distribute_hook, swap_to_stable_denom};
 use crate::error::ContractError;
 use crate::state::{read_config, store_config, Config};
 
@@ -35,6 +35,7 @@ pub fn init(
         market_contract: deps.api.canonical_address(&msg.market_contract)?,
         reward_contract: deps.api.canonical_address(&msg.reward_contract)?,
         liquidation_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
+        swap_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
         stable_denom: msg.stable_denom,
         basset_info: msg.basset_info,
     };
@@ -71,6 +72,8 @@ pub fn handle(
             unlock_collateral(deps, info, borrower, amount)
         }
         ExecuteMsg::DistributeRewards {} => distribute_rewards(deps, env, info),
+        ExecuteMsg::DistributeHook {} => distribute_hook(deps, env),
+        ExecuteMsg::SwapToStableDenom {} => swap_to_stable_denom(deps, env),
         ExecuteMsg::WithdrawCollateral { amount } => withdraw_collateral(deps, info, amount),
         ExecuteMsg::LiquidateCollateral {
             liquidator,

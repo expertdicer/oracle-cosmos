@@ -14,7 +14,6 @@ use cosmwasm_std::{
 use cw20::Cw20HandleMsg;
 use moneymarket::oracle::PriceResponse;
 use moneymarket::querier::{deduct_tax, query_price, TimeConstraints};
-
 /// Stable asset is submitted to create a bid record. If available bids for the collateral is under
 /// the threshold, the bid is activated. Bids are not used for liquidations until activated
 pub fn submit_bid(
@@ -86,7 +85,7 @@ pub fn submit_bid(
         store_total_bids(deps.storage, &collateral_token_raw, available_bids + amount)?;
     } else {
         // calculate wait_end from current time
-        bid.wait_end = Some(env.block.time.plus_seconds(config.waiting_period).seconds()); // fixme
+        bid.wait_end = Some(env.block.time + config.waiting_period); // fixme
     };
 
     // save to storage
@@ -326,7 +325,7 @@ pub fn execute_liquidation(
     let custody_contract = query_collateral_whitelist_info(
         &deps.querier,
         overseer,
-        collateral_token,
+        collateral_token.clone(),
     )?
     .custody_contract;
     if sender != HumanAddr(custody_contract) {
@@ -399,7 +398,7 @@ pub fn execute_liquidation(
     let repay_amount = repay_amount - bid_fee - liquidator_fee;
 
     let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Bank(BankMsg::Send {
-        from_address: env.contract.address,
+        from_address: env.contract.address.clone(),
         to_address: repay_address,
         amount: vec![deduct_tax(
             deps.as_ref(),
@@ -412,7 +411,7 @@ pub fn execute_liquidation(
 
     if !bid_fee.is_zero() {
         messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address,
+            from_address: env.contract.address.clone(),
             to_address: fee_address,
             amount: vec![deduct_tax(
                 deps.as_ref(),
@@ -648,8 +647,8 @@ pub(crate) fn calculate_remaining_bid(
     bid: &Bid,
     bid_pool: &BidPool,
 ) -> StdResult<(Uint256, Decimal256)> {
-    let scale_diff: Uint128 = bid_pool.current_scale.checked_sub(bid.scale_snapshot)?;   // fixme
-    let epoch_diff: Uint128 = bid_pool.current_epoch.checked_sub(bid.epoch_snapshot)?;   // fixme
+    let scale_diff: Uint128 = checked_sub(bid_pool.current_scale, bid.scale_snapshot)?;   // fixme
+    let epoch_diff: Uint128 = checked_sub(bid_pool.current_epoch, bid.epoch_snapshot)?;   // fixme
 
     let remaining_bid_dec: Decimal256 = if !epoch_diff.is_zero() {
         // pool was emptied, return 0
@@ -728,4 +727,12 @@ fn claim_bid_residue(bid_pool: &mut BidPool) -> Uint256 {
         bid_pool.residue_bid = bid_pool.residue_bid - Decimal256::from_uint256(claimable);
     }
     claimable
+}
+
+fn checked_sub(left: Uint128, right: Uint128) -> StdResult<Uint128> {
+    left.0.checked_sub(right.0).map(Uint128).ok_or_else(|| {
+        StdError::generic_err(
+            "OverFlow",
+        )
+    })
 }

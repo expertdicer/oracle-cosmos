@@ -8,9 +8,14 @@
   ],
   "properties": {
     "asset": {
-      "type": "string"
+      "$ref": "#/definitions/HumanAddr"
     },
     "feeder": {
+      "$ref": "#/definitions/HumanAddr"
+    }
+  },
+  "definitions": {
+    "HumanAddr": {
       "type": "string"
     }
   }

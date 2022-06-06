@@ -1,6 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_bignumber::{Decimal256, Uint256};
+use cosmwasm_bignumber::{Uint256};
 use cosmwasm_std::{
     to_binary, AllBalanceResponse, BalanceResponse, BankQuery, Coin, Deps, HumanAddr, QueryRequest,
     StdError, StdResult, Uint128, WasmQuery,

@@ -35,6 +35,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
 moneymarket = { path = "../../packages/moneymarket", default-features = false, version = "0.3.1"}
+oraiswap = { path = "../../packages/oraiswap", version = "2.4.1"}
 cw20 = "0.5.0"
 cosmwasm-bignumber = {path = "../../packages/bignumber", version = "2.3.0"}
 cosmwasm-std = "0.13.2"

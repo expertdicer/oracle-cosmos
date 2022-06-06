@@ -26,7 +26,7 @@
           ],
           "properties": {
             "asset": {
-              "type": "string"
+              "$ref": "#/definitions/HumanAddr"
             }
           }
         }
@@ -82,5 +82,10 @@
         }
       }
     }
-  ]
+  ],
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
 }

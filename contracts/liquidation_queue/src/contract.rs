@@ -42,6 +42,7 @@ pub fn init(
             price_timeframe: msg.price_timeframe,
             waiting_period: msg.waiting_period,
             overseer: deps.api.canonical_address(&msg.overseer)?,
+            oraiswap_oracle: deps.api.canonical_address(&msg.oraiswap_oracle)?,
         },
     )?;
 
@@ -116,7 +117,7 @@ pub fn receive_cw20(
     cw20_msg: Cw20ReceiveMsg,
 ) -> StdResult<HandleResponse> {
     let contract_addr = info.sender;
-    match from_binary(&cw20_msg.msg.unwrap())? {
+    match from_binary(&cw20_msg.msg.as_ref().unwrap())? {
         Cw20HookMsg::ExecuteBid {
             liquidator,
             repay_address,

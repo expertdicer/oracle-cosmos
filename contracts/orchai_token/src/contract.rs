@@ -21,7 +21,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub fn init(
     mut deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     msg: InitMsg,
 ) -> StdResult<InitResponse> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
