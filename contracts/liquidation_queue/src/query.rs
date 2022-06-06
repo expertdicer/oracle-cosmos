@@ -1,5 +1,5 @@
 use crate::bid::{calculate_liquidated_collateral, calculate_remaining_bid};
-use crate::querier::query_collateral_whitelist_info;
+use crate::querier::{query_collateral_whitelist_info, query_tax_rate_and_cap};
 use crate::state::{
     read_bid, read_bid_pool, read_bid_pools, read_bids_by_user, read_collateral_info, read_config,
     read_total_bids, Bid, BidPool, CollateralInfo, Config,
@@ -10,7 +10,6 @@ use moneymarket::liquidation_queue::{
     BidPoolResponse, BidPoolsResponse, BidResponse, BidsResponse, CollateralInfoResponse,
     ConfigResponse, LiquidationAmountResponse,
 };
-use moneymarket::querier::query_tax_rate_and_cap;
 use moneymarket::tokens::TokensHuman;
 
 pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
@@ -66,7 +65,7 @@ pub fn query_liquidation_amount(
     };
 
     // check tax cap
-    let (mut tax_rate, tax_cap) = query_tax_rate_and_cap(deps, config.stable_denom)?;
+    let (mut tax_rate, tax_cap) = query_tax_rate_and_cap(deps, config.stable_denom, HumanAddr(config.oraiswap_oracle.to_string()))?;
     let mut tax_cap_adj = tax_cap;
     if borrow_amount * tax_rate > tax_cap_adj {
         tax_rate = Decimal256::zero()
@@ -82,7 +81,7 @@ pub fn query_liquidation_amount(
     for (i, collateral) in collaterals.iter().enumerate() {
         let (price, weight, max_ltv) = (collateral_prices[i], collateral_weights[i], max_ltvs[i]);
 
-        let collateral_token_raw = deps.api.canonical_address(&HumanAddr(collateral.0))?;
+        let collateral_token_raw = deps.api.canonical_address(&HumanAddr(collateral.0.clone()))?;
         let collateral_info = read_collateral_info(deps.storage, &collateral_token_raw)?;
 
         // calculate borrow amount and limit portion
@@ -165,12 +164,12 @@ fn compute_collateral_weights(
 
     for (collateral, price) in collaterals.iter().zip(collateral_prices.iter()) {
         let collateral_available_bids =
-            read_total_bids(deps.storage, &deps.api.canonical_address(&HumanAddr(collateral.0))?)
+            read_total_bids(deps.storage, &deps.api.canonical_address(&HumanAddr(collateral.0.clone()))?)
                 .unwrap_or_default();
         let max_ltv = query_collateral_whitelist_info(
             &deps.querier,
-            overseer,
-            HumanAddr(collateral.0),
+            overseer.clone(),
+            HumanAddr(collateral.0.clone()),
         )?
         .max_ltv;
 
