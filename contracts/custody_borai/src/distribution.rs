@@ -30,7 +30,6 @@ pub fn distribute_rewards(
         return Err(ContractError::Unauthorized {});
     }
 
-    let contract_addr = env.contract.address.clone();
     let reward_contract = deps.api.human_address(&config.reward_contract)?;
 
     // let accrued_rewards =
@@ -139,7 +138,7 @@ pub fn swap_to_stable_denom(
 pub fn create_swap_msg(offer_coin: &Coin, ask_denom: &str, swap_contract:  HumanAddr) -> StdResult<CosmosMsg> {
     Ok(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: swap_contract,
-            send: vec![],                   
+            send: vec![],  // fixme
             msg: to_binary(&SwapOperation::OraiSwap {
                 offer_asset_info: AssetInfo::NativeToken{denom: offer_coin.denom.clone() },
                 ask_asset_info: AssetInfo::NativeToken{denom: ask_denom.to_string() },

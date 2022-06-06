@@ -30,6 +30,7 @@ pub struct InstantiateMsg {
     /// Time period that needs to pass for a bid to be activated (seconds)
     pub waiting_period: u64,
     pub overseer: HumanAddr,
+    pub oraiswap_oracle: HumanAddr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
