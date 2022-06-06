@@ -1,15 +1,15 @@
 use crate::error::ContractError;
 use crate::state::{read_config, store_config, Config};
+use cosmwasm_bignumber::{Decimal256, Uint256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_bignumber::{Decimal256, Uint256};
 
 use cosmwasm_std::{
-    attr, to_binary, Binary, Deps, DepsMut, Env, HandleResponse, HumanAddr, InitResponse, MessageInfo,
-    StdResult, CosmosMsg, StakingMsg, Coin, BankMsg, WasmMsg
+    attr, to_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, HandleResponse,
+    HumanAddr, InitResponse, MessageInfo, StakingMsg, StdResult, WasmMsg,
 };
 
-use crate::msgs::{InstantiateMsg, ExecuteMsg, QueryMsg};
+use crate::msgs::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use cw20::Cw20HandleMsg;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -19,17 +19,19 @@ pub fn init(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<InitResponse, ContractError> {
-    store_config(deps.storage, &Config{
-        owner: msg.owner,
-        native_token_denom: msg.native_token_denom,
-        native_token: msg.native_token,
-        asset_token: msg.asset_token,
-        base_apr: msg.base_apr,
-        orchai_token: msg.orchai_token,
-    },)?;
+    store_config(
+        deps.storage,
+        &Config {
+            owner: msg.owner,
+            native_token_denom: msg.native_token_denom,
+            native_token: msg.native_token,
+            asset_token: msg.asset_token,
+            base_apr: msg.base_apr,
+            orchai_token: msg.orchai_token,
+        },
+    )?;
 
     Ok(InitResponse::default())
-   
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -45,9 +47,7 @@ pub fn handle(
             base_apr,
             asset_token,
         } => update_config(deps, _env, info, owner, base_apr, asset_token),
-        ExecuteMsg::StakingOrai {
-            amount,
-        } => staking_orai(deps, _env, info, amount),
+        ExecuteMsg::StakingOrai { amount } => staking_orai(deps, _env, info, amount),
     }
 }
 
@@ -89,7 +89,6 @@ pub fn staking_orai(
     let config: Config = read_config(deps.storage)?;
     // user send orai to contract
 
-
     // mint orai for user
     let mut messages: Vec<CosmosMsg> = vec![];
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -101,14 +100,15 @@ pub fn staking_orai(
         })?,
     }));
 
-
     let res = HandleResponse {
-        attributes: vec![
-            attr("action", "staking_orai"),
-            attr("amount", amount),
-        ],
+        attributes: vec![attr("action", "staking_orai"), attr("amount", amount)],
         messages: messages,
-        data: None
+        data: None,
     };
     Ok(res)
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    Ok(Binary::default())
 }
