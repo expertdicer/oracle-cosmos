@@ -710,6 +710,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3f6f92acf49d1b98f7a81226834412ada05458b7364277387724a237f062695"
 
 [[package]]
+name = "sOrai_token"
+version = "0.1.0"
+
+[[package]]
 name = "schemars"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -857,6 +861,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c01a0c15da1b0b0e1494112e7af814a678fec9bd157881b49beac661e9b6f32"
 dependencies = [
  "der",
+]
+
+[[package]]
+name = "staking"
+version = "0.1.0"
+dependencies = [
+ "anchor-token",
+ "cosmwasm-bignumber",
+ "cosmwasm-schema",
+ "cosmwasm-std 0.13.2",
+ "cosmwasm-storage",
+ "cw-storage-plus",
+ "cw0",
+ "cw2",
+ "cw20",
+ "cw20-base",
+ "moneymarket",
+ "schemars 0.7.6",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

@@ -12,7 +12,7 @@ use cw20_base::msg::{HandleMsg, MigrateMsg, QueryMsg};
 use cw20_base::state::{token_info, MinterData, TokenInfo};
 
 use anchor_token::token::InitMsg;
-
+    
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw20-base";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");

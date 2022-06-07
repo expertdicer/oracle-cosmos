@@ -2,4 +2,3 @@ cargo.lock
 target
 test
 artifacts
-.env
