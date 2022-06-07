@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClaimableResponse",
+  "type": "object",
+  "required": [
+    "reward"
+  ],
+  "properties": {
+    "reward": {
+      "$ref": "#/definitions/Uint256"
+    }
+  },
+  "definitions": {
+    "Uint256": {
+      "type": "string"
+    }
+  }
+}
