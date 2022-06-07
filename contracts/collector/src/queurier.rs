@@ -10,7 +10,7 @@ use oraiswap::oracle::OracleContract;
 
 // use terra_cosmwasm::TerraQuerier;
 
-use crate::oracle::{PriceResponse, QueryMsg as OracleQueryMsg};
+use moneymarket::oracle::{PriceResponse, QueryMsg as OracleQueryMsg};
 
 pub fn query_all_balances(deps: Deps, account_addr: HumanAddr) -> StdResult<Vec<Coin>> {
     // load price form the oracle
@@ -22,20 +22,20 @@ pub fn query_all_balances(deps: Deps, account_addr: HumanAddr) -> StdResult<Vec<
     Ok(all_balances.amount)
 }
 
-pub fn query_balance(deps: Deps, account_addr: HumanAddr, denom: String) -> StdResult<Uint256> {
+pub fn query_balance(deps: Deps, account_addr: HumanAddr, denom: String) -> StdResult<Uint128> {
     // load price form the oracle
     let balance: BalanceResponse = deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
         address: account_addr,
         denom,
     }))?;
-    Ok(balance.amount.amount.into())
+    Ok(balance.amount.amount)
 }
 
 pub fn query_token_balance(
     deps: Deps,
     contract_addr: HumanAddr,
     account_addr: HumanAddr,
-) -> StdResult<Uint256> {
+) -> StdResult<Uint128> {
     // load balance form the token contract
     let balance: Uint128 = deps
         .querier
@@ -47,7 +47,7 @@ pub fn query_token_balance(
         }))
         .unwrap_or_else(|_| Uint128::zero());
 
-    Ok(balance.into())
+    Ok(balance)
 }
 
 pub fn query_supply(deps: Deps, contract_addr: HumanAddr) -> StdResult<Uint256> {

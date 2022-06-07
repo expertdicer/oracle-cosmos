@@ -3,6 +3,37 @@
 version = 3
 
 [[package]]
+name = "anchor-collector"
+version = "0.1.0"
+dependencies = [
+ "anchor-token",
+ "cosmwasm-bignumber",
+ "cosmwasm-schema",
+ "cosmwasm-std 0.13.2",
+ "cosmwasm-storage",
+ "cw20",
+ "moneymarket",
+ "oraiswap",
+ "schemars 0.7.6",
+ "serde",
+ "terra-cosmwasm",
+]
+
+[[package]]
+name = "anchor-distributor"
+version = "0.1.0"
+dependencies = [
+ "anchor-token",
+ "cosmwasm-schema",
+ "cosmwasm-std 0.13.2",
+ "cosmwasm-storage",
+ "cw20",
+ "schemars 0.7.6",
+ "serde",
+ "terra-cosmwasm",
+]
+
+[[package]]
 name = "anchor-token"
 version = "0.3.0"
 dependencies = [
@@ -301,6 +332,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "dex"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-bignumber",
+ "cosmwasm-schema",
+ "cosmwasm-std 0.13.2",
+ "cosmwasm-storage",
+ "cw20",
+ "moneymarket",
+ "oraiswap",
+ "schemars 0.7.6",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -495,6 +542,7 @@ dependencies = [
  "cosmwasm-std 0.13.2",
  "cosmwasm-storage",
  "cw20",
+ "oraiswap",
  "schemars 0.7.6",
  "serde",
 ]

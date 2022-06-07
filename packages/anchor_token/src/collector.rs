@@ -1,13 +1,14 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::Decimal;
+use cosmwasm_std::{Decimal, HumanAddr};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
-    pub gov_contract: String, // collected rewards receiver
-    pub astroport_factory: String,
-    pub anchor_token: String,
+    pub gov_contract: HumanAddr, // collected rewards receiver
+    pub astroport_factory: HumanAddr,
+    pub anchor_token: HumanAddr,
+    pub oraiswap_oracle: HumanAddr,
     pub reward_factor: Decimal,
     pub max_spread: Option<Decimal>,
 }
@@ -24,14 +25,16 @@ pub enum ExecuteMsg {
     /// it should be (false, none)
     UpdateConfig {
         reward_factor: Option<Decimal>,
-        gov_contract: Option<String>,
-        astroport_factory: Option<String>,
+        gov_contract: Option<HumanAddr>,
+        astroport_factory: Option<HumanAddr>,
+        oraiswap_oracle: Option<HumanAddr>,
         max_spread: (bool, Option<Decimal>),
     },
     /// Public Message
     /// Sweep all given denom balance to ANC token
     /// and execute Distribute message
     Sweep { denom: String },
+    Distribute {}
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -46,6 +49,7 @@ pub struct ConfigResponse {
     pub gov_contract: String, // collected rewards receiver
     pub astroport_factory: String,
     pub anchor_token: String,
+    pub oraiswap_oracle: String,
     pub reward_factor: Decimal,
     pub max_spread: Option<Decimal>,
 }
@@ -53,6 +57,6 @@ pub struct ConfigResponse {
 /// We currently take no arguments for migrations
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MigrateMsg {
-    pub astroport_factory: String,
+    pub astroport_factory: HumanAddr,
     pub max_spread: Decimal,
 }
