@@ -6,7 +6,7 @@ use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 use cosmwasm_std::{from_binary, HumanAddr};
 
 #[test]
-fn update_config() {
+fn staking() {
     let mut deps = mock_dependencies(&[]);
 
     let msg = InstantiateMsg {
@@ -14,7 +14,7 @@ fn update_config() {
         native_token_denom: "orai".to_string(),
         native_token: HumanAddr::from("owner0000"),
         asset_token: HumanAddr::from("owner0000"),
-        base_apr: Uint256::zero(),
+        base_apr: Uint256::one(),
         orchai_token: HumanAddr::from("owner0000"),
     };
 
@@ -23,10 +23,8 @@ fn update_config() {
 
     // update owner
     let info = mock_info("owner0000", &[]);
-    let msg = ExecuteMsg::UpdateConfig {
-        owner: Some(HumanAddr::from("owner0001")),
-        asset_token: Some(HumanAddr::from("owner0002")),
-        base_apr: Some(Uint256::one()),
+    let msg = ExecuteMsg::StakingOrai {
+        amount: Uint256::from(100u128),
     };
 
     let res = handle(deps.as_mut(), mock_env(), info, msg).unwrap();

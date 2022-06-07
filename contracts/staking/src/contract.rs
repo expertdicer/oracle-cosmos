@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::{read_config, store_config, Config};
+use crate::state::{read_config, store_config, Config, UserReward, store_user_reward_elem, read_user_reward_elem};
 use cosmwasm_bignumber::{Decimal256, Uint256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -11,6 +11,7 @@ use cosmwasm_std::{
 
 use crate::msgs::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use cw20::Cw20HandleMsg;
+
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -86,25 +87,51 @@ pub fn staking_orai(
     _info: MessageInfo,
     amount: Uint256,
 ) -> Result<HandleResponse, ContractError> {
+
     let config: Config = read_config(deps.storage)?;
     // user send orai to contract
 
     // mint orai for user
     let mut messages: Vec<CosmosMsg> = vec![];
-    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: config.asset_token,
-        send: vec![],
-        msg: to_binary(&Cw20HandleMsg::Mint {
-            recipient: _info.sender,
-            amount: amount.clone().into(),
-        })?,
-    }));
+    // messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+    //     contract_addr: config.asset_token,
+    //     send: vec![],
+    //     msg: to_binary(&Cw20HandleMsg::Mint {
+    //         recipient: _info.sender.clone(),
+    //         amount: amount.clone().into(),
+    //     })?,
+    // }));
 
     let res = HandleResponse {
         attributes: vec![attr("action", "staking_orai"), attr("amount", amount)],
         messages: messages,
         data: None,
     };
+
+    // Calculate reward
+
+    let sender_raw =  deps.api.canonical_address(&HumanAddr(_info.sender.to_string()))?;
+    if read_user_reward_elem(deps.storage,&sender_raw).is_err() {
+        store_user_reward_elem(
+            deps.storage, 
+            &sender_raw, 
+            &UserReward {
+                last_reward: Uint256::zero(),
+                last_time: _env.block.time,
+                amount: Uint256::zero(),
+            })?;
+    }
+    let mut user_reward: UserReward = read_user_reward_elem(deps.storage,&sender_raw)?;
+    
+    let current_time = _env.block.time;
+
+    let YEAR:Uint256 = Uint256::from(31536000u128);
+    // let mut reward = user_reward.amount * Uint256::from(current_time - user_reward.last_time);
+    let mut reward = Uint256::from(1u128);
+    reward = reward * config.base_apr;
+    reward = reward / Decimal256::from(100u64)
+    // * config.base_apr / Decimal256::from(100u64);
+    println!("re{}", reward);
     Ok(res)
 }
 
