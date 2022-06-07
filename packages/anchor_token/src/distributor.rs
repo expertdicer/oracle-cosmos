@@ -1,13 +1,13 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::Uint128;
+use cosmwasm_std::{Uint128, HumanAddr};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
-    pub gov_contract: String,   // anchor gov contract
-    pub anchor_token: String,   // anchor token address
-    pub whitelist: Vec<String>, // whitelisted contract addresses to spend distributor
+    pub gov_contract: HumanAddr,   // anchor gov contract
+    pub anchor_token: HumanAddr,   // anchor token address
+    pub whitelist: Vec<HumanAddr>, // whitelisted contract addresses to spend distributor
     pub spend_limit: Uint128,   // spend limit per each `spend` request
 }
 
@@ -15,9 +15,9 @@ pub struct InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     UpdateConfig { spend_limit: Option<Uint128> },
-    Spend { recipient: String, amount: Uint128 },
-    AddDistributor { distributor: String },
-    RemoveDistributor { distributor: String },
+    Spend { recipient: HumanAddr, amount: Uint128 },
+    AddDistributor { distributor: HumanAddr },
+    RemoveDistributor { distributor: HumanAddr },
 }
 
 /// We currently take no arguments for migrations

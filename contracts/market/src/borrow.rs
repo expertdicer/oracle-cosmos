@@ -234,9 +234,9 @@ pub fn claim_rewards(
             send: vec![],
             msg: to_binary(&FaucetExecuteMsg::Spend {
                 recipient: if let Some(to) = to {
-                    to.to_string()
+                    to
                 } else {
-                    borrower.to_string()
+                    borrower
                 },
                 amount: claim_amount.into(),
             })?,
