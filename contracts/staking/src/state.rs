@@ -14,8 +14,9 @@ pub struct Config {
     pub native_token_denom: String, // "ORAI"
     pub native_token: HumanAddr,
     pub asset_token: HumanAddr,
-    pub base_apr: Uint256,
+    pub base_apr: Decimal256,
     pub orchai_token: HumanAddr,
+    pub validator_to_delegate: HumanAddr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

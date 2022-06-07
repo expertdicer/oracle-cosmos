@@ -14,7 +14,7 @@ fn staking() {
         native_token_denom: "orai".to_string(),
         native_token: HumanAddr::from("owner0000"),
         asset_token: HumanAddr::from("owner0000"),
-        base_apr: Uint256::one(),
+        base_apr: Decimal256::percent(30),
         orchai_token: HumanAddr::from("owner0000"),
     };
 
