@@ -12,6 +12,9 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("ZeroDepositUnallowed")]
+    ZeroDepositUnallowed {},
+
     #[error("Liquidation amount cannot exceed locked amount: {0}")]
     LiquidationAmountExceedsLocked(u128),
 
