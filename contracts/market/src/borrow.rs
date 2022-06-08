@@ -2,7 +2,7 @@ use anchor_token::distributor::ExecuteMsg as FaucetExecuteMsg;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, to_binary, HumanAddr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    StdResult, WasmMsg, HandleResponse
+    StdResult, WasmMsg, HandleResponse, Uint128
 };
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{BorrowerInfoResponse, BorrowerInfosResponse};
@@ -16,7 +16,7 @@ use crate::state::{
     store_state, BorrowerInfo, Config, State,
 };
 use moneymarket::querier::{deduct_tax, query_balance, query_supply};
-
+use cw20::Cw20HandleMsg;
 pub fn borrow_stable(
     deps: DepsMut,
     env: Env,
@@ -58,7 +58,7 @@ pub fn borrow_stable(
     let current_balance = query_balance(
         deps.as_ref(),
         query_target,
-        config.stable_denom.to_string(),
+        HumanAddr(config.stable_addr.to_string()),
     )?;
 
     // Assert borrow amount
@@ -76,16 +76,13 @@ pub fn borrow_stable(
             attr("borrow_amount", borrow_amount),
         ],
         messages: vec![ 
-            CosmosMsg::Bank(BankMsg::Send {
-                from_address: env.contract.address,
-                to_address: to.unwrap_or_else(|| borrower.clone()),
-                amount: vec![deduct_tax(
-                    deps.as_ref(),
-                    Coin {
-                        denom: config.stable_denom,
-                        amount: borrow_amount.into(),
-                    },
-                )?],
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: HumanAddr(config.stable_addr.to_string()),
+                msg: to_binary(&Cw20HandleMsg::Transfer {
+                    recipient: to.unwrap_or_else(|| borrower.clone()),
+                    amount: deduct_tax(deps.as_ref(), borrow_amount.into())?,
+                })?,
+                send: vec![],
             }),
         ],
         data: None,
@@ -108,40 +105,24 @@ pub fn repay_stable_from_liquidation(
     let cur_balance: Uint256 = query_balance(
         deps.as_ref(),
         env.contract.address.clone(),
-        config.stable_denom.to_string(),
+        HumanAddr(config.stable_addr.to_string()),
     )?;
 
-    // override env
-    let mut info = info;
+    let amount: Uint256 = cur_balance - prev_balance;
 
-    info.sender = borrower;
-    info.sent_funds = vec![Coin {
-        denom: config.stable_denom,
-        amount: (cur_balance - prev_balance).into(),
-    }];
-
-    repay_stable(deps, env, info)
+    repay_stable(deps, env, borrower, amount)
 }
 
-pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<HandleResponse, ContractError> {
+pub fn repay_stable(deps: DepsMut, env: Env, borrower: HumanAddr, amount: Uint256) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-
-    // Check stable denom deposit
-    let amount: Uint256 = info
-        .sent_funds
-        .iter()
-        .find(|c| c.denom == config.stable_denom)
-        .map(|c| Uint256::from(c.amount))
-        .unwrap_or_else(Uint256::zero);
 
     // Cannot deposit zero amount
     if amount.is_zero() {
-        return Err(ContractError::ZeroRepay(config.stable_denom));
+        return Err(ContractError::ZeroRepay{});
     }
 
     let mut state: State = read_state(deps.storage)?;
 
-    let borrower = info.sender;
     let borrower_raw = deps.api.canonical_address(&borrower)?;
     let mut liability: BorrowerInfo = read_borrower_info(deps.storage, &borrower_raw);
 
@@ -166,16 +147,16 @@ pub fn repay_stable(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Handle
         liability.loan_amount = Uint256::zero();
 
         // Payback left repay amount to sender
-        messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address,
-            to_address: HumanAddr(borrower.to_string()),
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom,
-                    amount: (amount - repay_amount).into(),
-                },
-            )?],
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: HumanAddr(borrower.to_string()),
+                amount: deduct_tax(
+                    deps.as_ref(),
+                    (amount - repay_amount).into(),
+                )?,
+            })?,
+            send: vec![],
         }));
     } else {
         repay_amount = amount;
@@ -273,7 +254,7 @@ pub fn compute_interest(
     let balance: Uint256 = query_balance(
         deps,
         deps.api.human_address(&config.contract_addr)?,
-        config.stable_denom.to_string(),
+        HumanAddr(config.stable_addr.to_string()),
     )? - deposit_amount.unwrap_or_else(Uint256::zero);
 
     let borrow_rate_res: BorrowRateResponse = query_borrow_rate(
@@ -443,16 +424,12 @@ fn assert_max_borrow_factor(
         > (current_balance + state.total_liabilities - state.total_reserves)
             * config.max_borrow_factor
     {
-        return Err(ContractError::MaxBorrowFactorReached(
-            config.stable_denom.clone(),
-        ));
+        return Err(ContractError::MaxBorrowFactorReached {});
     }
 
     // Assert available balance
     if borrow_amount + state.total_reserves > current_balance {
-        return Err(ContractError::NoStableAvailable(
-            config.stable_denom.clone(),
-        ));
+        return Err(ContractError::NoStableAvailable {});
     }
 
     Ok(HandleResponse::default())

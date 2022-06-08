@@ -526,6 +526,7 @@ dependencies = [
  "cosmwasm-std 0.13.2",
  "cosmwasm-storage",
  "cw20",
+ "cw20-base",
  "moneymarket",
  "protobuf",
  "schemars 0.7.6",

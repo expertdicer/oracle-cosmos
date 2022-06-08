@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cw20::Cw20ReceiveMsg;
 use cw20::{Cw20Coin, MinterResponse};
-use cosmwasm_std::{HumanAddr, Attribute, Binary};
+use cosmwasm_std::{HumanAddr, Attribute, Binary, Uint128};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -12,14 +12,25 @@ pub struct InstantiateMsg {
     /// Owner address for config update
     pub owner_addr: HumanAddr,
     /// stable coin denom used to borrow & repay
-    pub stable_denom: String,
+    pub stable_addr: HumanAddr,
     /// Anchor token code ID used to instantiate
     pub orchai_code_id: u64,
     /// Anchor token distribution speed
     pub anc_emission_rate: Decimal256,
     /// Maximum allowed borrow rate over deposited stable balance
-    pub max_borrow_factor: Decimal256,
+    pub max_borrow_factor: Decimal256, 
+
+    // pub hook_msg: HookMsg,
 }
+
+/// InstantiateMsg Hook
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct HookMsg {
+    pub contract_addr: HumanAddr,
+    pub amount: Uint256,
+    pub recipient: HumanAddr,
+}
+
 
 /// TokenContract InstantiateMsg
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -86,7 +97,7 @@ pub enum ExecuteMsg {
     /// User operations
     ////////////////////
     /// Deposit stable asset to get interest
-    DepositStable {},
+    // DepositStable {},
 
     /// Borrow stable asset with collaterals in overseer contract
     BorrowStable {
@@ -95,7 +106,7 @@ pub enum ExecuteMsg {
     },
 
     /// Repay stable asset to decrease liability
-    RepayStable {},
+    // RepayStable {},
 
     /// Claim distributed ANC rewards
     ClaimRewards {
@@ -185,6 +196,8 @@ pub enum Cw20HookMsg {
     /// Return stable coins to a user
     /// according to exchange rate
     RedeemStable {},
+    DepositStabe {},
+    RepayStable {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -218,7 +231,7 @@ pub struct ConfigResponse {
     pub overseer_contract: String,
     pub collector_contract: String,
     pub distributor_contract: String,
-    pub stable_denom: String,
+    pub stable_addr: String,
     pub max_borrow_factor: Decimal256,
 }
 

@@ -12,16 +12,17 @@ use crate::state::{read_config, read_state, store_config, store_state, Config, S
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, from_binary, to_binary, HumanAddr, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps,
+    attr, from_binary, to_binary, HumanAddr, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps, QueryRequest, WasmQuery,
     DepsMut, Env, MessageInfo, StdError, StdResult, Uint128, WasmMsg, InitResponse, HandleResponse, MigrateResponse
 };
-use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse};
+use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse, Cw20HandleMsg};
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{
     ConfigResponse, Cw20HookMsg, EpochStateResponse, ExecuteMsg, InstantiateMsg, MigrateMsg,
     QueryMsg, StateResponse,TokenInstantiateMsg, InitHook,
 };
 use moneymarket::querier::{deduct_tax, query_balance, query_supply};
+use cw20::TokenInfoResponse;
 
 pub const INITIAL_DEPOSIT_AMOUNT: u128 = 1000000;
 
@@ -32,19 +33,27 @@ pub fn init(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<InitResponse, ContractError> {
-    let initial_deposit = info
-        .sent_funds
-        .iter()
-        .find(|c| c.denom == msg.stable_denom)
-        .map(|c| c.amount)
-        .unwrap_or_else(Uint128::zero);
-
-    if initial_deposit != Uint128::from(INITIAL_DEPOSIT_AMOUNT) {
-        return Err(ContractError::InitialFundsNotDeposited(
-            INITIAL_DEPOSIT_AMOUNT,
-            msg.stable_denom,
-        ));
-    }
+    
+    let mut messages: Vec<CosmosMsg> = vec![];
+    // match msg.hook_msg {
+    //     moneymarket::market::HookMsg {contract_addr, amount, recipient} => {
+    //         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+    //             contract_addr: contract_addr,
+    //             msg: to_binary(&Cw20HandleMsg::TransferFrom {
+    //                 owner: info.sender,
+    //                 recipient: recipient,
+    //                 amount: amount.into(),
+    //             })?,
+    //             send: vec![],
+    //         }));
+    //     },
+    // }
+    // if msg.hook_msg.amount != Uint256::from(INITIAL_DEPOSIT_AMOUNT) {
+    //     return Err(ContractError::InitialFundsNotDeposited(
+    //         INITIAL_DEPOSIT_AMOUNT,
+    //         msg.stable_denom,
+    //     ));
+    // }
 
     store_config(
         deps.storage,
@@ -57,7 +66,7 @@ pub fn init(
             distribution_model: CanonicalAddr::from(vec![]),
             collector_contract: CanonicalAddr::from(vec![]),
             distributor_contract: CanonicalAddr::from(vec![]),
-            stable_denom: msg.stable_denom.clone(),
+            stable_addr: deps.api.canonical_address(&msg.stable_addr)?,
             max_borrow_factor: msg.max_borrow_factor,
         },
     )?;
@@ -77,37 +86,53 @@ pub fn init(
         },
     )?;
 
+    let stable_name = query_stable_name(deps.as_ref(), msg.stable_addr.clone())?;
+
+    messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
+        code_id: msg.orchai_code_id,
+        send: vec![],
+        label: Some("".to_string()),
+        msg: to_binary(&TokenInstantiateMsg {
+            name: format!("Orchai {}", stable_name[1..].to_uppercase()),
+            symbol: format!(
+                "o{}T",
+                stable_name[1..(stable_name.len() - 1)].to_uppercase()
+            ),
+            decimals: 6u8,
+            initial_balances: vec![Cw20Coin {
+                address: CanonicalAddr(to_binary(&env.contract.address)?),
+                amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
+            }],
+            mint: Some(MinterResponse {
+                minter: HumanAddr(env.contract.address.to_string()),
+                cap: None,
+            }),
+            init_hook: Some(InitHook {
+                contract_addr: env.contract.address,
+                msg: to_binary(&ExecuteMsg::RegisterATerra {})?,
+            }),
+        })?,
+    }));
+
     let res = InitResponse {
         attributes: vec![],
-        messages: vec![
-            CosmosMsg::Wasm(WasmMsg::Instantiate {
-                code_id: msg.orchai_code_id,
-                send: vec![],
-                label: Some("".to_string()),
-                msg: to_binary(&TokenInstantiateMsg {
-                    name: format!("Orchai {}", msg.stable_denom[1..].to_uppercase()),
-                    symbol: format!(
-                        "o{}T",
-                        msg.stable_denom[1..(msg.stable_denom.len() - 1)].to_uppercase()
-                    ),
-                    decimals: 6u8,
-                    initial_balances: vec![Cw20Coin {
-                        address: CanonicalAddr(to_binary(&env.contract.address)?),
-                        amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
-                    }],
-                    mint: Some(MinterResponse {
-                        minter: HumanAddr(env.contract.address.to_string()),
-                        cap: None,
-                    }),
-                    init_hook: Some(InitHook {
-                        contract_addr: env.contract.address,
-                        msg: to_binary(&ExecuteMsg::RegisterATerra {})?,
-                    }),
-                })?,
-            }),
-        ],
+        messages: messages,
     };
     Ok(res) 
+}
+
+fn query_stable_name(
+    deps: Deps,
+    stable_addr: HumanAddr,
+) -> StdResult<String> {
+    let query_response: TokenInfoResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: stable_addr,
+            msg: to_binary(&cw20_base::msg::QueryMsg::TokenInfo {
+            })?,
+        }))?;
+
+    Ok(query_response.name)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -166,7 +191,6 @@ pub fn handle(
             threshold_deposit_rate,
             distributed_interest,
         ),
-        ExecuteMsg::DepositStable {} => deposit_stable(deps, env, info),
         ExecuteMsg::BorrowStable { borrow_amount, to } => {
             borrow_stable(
                 deps,
@@ -176,7 +200,6 @@ pub fn handle(
                 to,
             )
         }
-        ExecuteMsg::RepayStable {} => repay_stable(deps, env, info),
         ExecuteMsg::RepayStableFromLiquidation {
             borrower,
             prev_balance,
@@ -213,6 +236,22 @@ pub fn receive_cw20(
             }
 
             redeem_stable(deps, env, cw20_msg.sender, cw20_msg.amount)
+        }
+        Ok(Cw20HookMsg::DepositStabe {}) => {
+            let config: Config = read_config(deps.storage)?;
+            if deps.api.canonical_address(&HumanAddr(contract_addr.to_string()))? != config.stable_addr {
+                return Err(ContractError::Unauthorized {});
+            }
+
+            deposit_stable(deps, env, cw20_msg.sender, cw20_msg.amount)
+        }
+        Ok(Cw20HookMsg::RepayStable {}) => {
+            let config: Config = read_config(deps.storage)?;
+            if deps.api.canonical_address(&HumanAddr(contract_addr.to_string()))? != config.stable_addr {
+                return Err(ContractError::Unauthorized {});
+            }
+
+            repay_stable(deps, env, cw20_msg.sender, cw20_msg.amount.into())
         }
         _ => Err(ContractError::MissingRedeemStableHook {}),
     }
@@ -348,7 +387,7 @@ pub fn execute_epoch_operations(
     let balance: Uint256 = query_balance(
         deps.as_ref(),
         deps.api.human_address(&config.contract_addr)?,
-        config.stable_denom.to_string(),
+        HumanAddr(config.stable_addr.to_string()),
     )? - distributed_interest;
 
     let borrow_rate_res: BorrowRateResponse = query_borrow_rate(
@@ -381,19 +420,17 @@ pub fn execute_epoch_operations(
     let messages: Vec<CosmosMsg> = if !total_reserves.is_zero() && balance > total_reserves {
         state.total_reserves = state.total_reserves - Decimal256::from_uint256(total_reserves);
 
-        vec![CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address,  // fixme
-            to_address: deps
-                .api
-                .human_address(&config.collector_contract)?,
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom,
-                    amount: total_reserves.into(),
-                },
-            )?],
-        })]
+        vec![CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: HumanAddr(config.stable_addr.to_string()),
+                msg: to_binary(&Cw20HandleMsg::Transfer {
+                    recipient: deps
+                        .api
+                        .human_address(&config.collector_contract)?,
+                    amount: deduct_tax(deps.as_ref(), total_reserves.into())?,
+                })?,
+                send: vec![],
+            })
+        ]
     } else {
         vec![]
     };
@@ -463,7 +500,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .api
             .human_address(&config.distributor_contract)?
             .to_string(),
-        stable_denom: config.stable_denom,
+        stable_addr: config.stable_addr.to_string(),
         max_borrow_factor: config.max_borrow_factor,
     })
 }
@@ -523,7 +560,7 @@ pub fn query_epoch_state(
     let balance = query_balance(
         deps,
         deps.api.human_address(&config.contract_addr)?,
-        config.stable_denom.to_string(),
+        HumanAddr(config.stable_addr.to_string()),
     )? - distributed_interest;
 
     if let Some(block_height) = block_height {
