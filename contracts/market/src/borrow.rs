@@ -1,8 +1,8 @@
 use anchor_token::distributor::ExecuteMsg as FaucetExecuteMsg;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, HumanAddr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    StdResult, WasmMsg, HandleResponse, Uint128
+    attr, to_binary, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, HandleResponse, HumanAddr,
+    MessageInfo, StdResult, Uint128, WasmMsg,
 };
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{BorrowerInfoResponse, BorrowerInfosResponse};
@@ -15,8 +15,8 @@ use crate::state::{
     read_borrower_info, read_borrower_infos, read_config, read_state, store_borrower_info,
     store_state, BorrowerInfo, Config, State,
 };
-use moneymarket::querier::{deduct_tax, query_balance, query_supply};
 use cw20::Cw20HandleMsg;
+use moneymarket::querier::{deduct_tax, query_balance, query_supply};
 pub fn borrow_stable(
     deps: DepsMut,
     env: Env,
@@ -53,7 +53,6 @@ pub fn borrow_stable(
             borrow_limit_res.borrow_limit.into(),
         ));
     }
-    
     let query_target = HumanAddr(env.contract.address.to_string());
     let current_balance = query_balance(
         deps.as_ref(),
@@ -75,16 +74,14 @@ pub fn borrow_stable(
             attr("borrower", HumanAddr(borrower.to_string())),
             attr("borrow_amount", borrow_amount),
         ],
-        messages: vec![ 
-            CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: HumanAddr(config.stable_addr.to_string()),
-                msg: to_binary(&Cw20HandleMsg::Transfer {
-                    recipient: to.unwrap_or_else(|| borrower.clone()),
-                    amount: deduct_tax(deps.as_ref(), borrow_amount.into())?,
-                })?,
-                send: vec![],
-            }),
-        ],
+        messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: to.unwrap_or_else(|| borrower.clone()),
+                amount: deduct_tax(deps.as_ref(), borrow_amount.into())?,
+            })?,
+            send: vec![],
+        })],
         data: None,
     };
     Ok(res)
@@ -113,12 +110,17 @@ pub fn repay_stable_from_liquidation(
     repay_stable(deps, env, borrower, amount)
 }
 
-pub fn repay_stable(deps: DepsMut, env: Env, borrower: HumanAddr, amount: Uint256) -> Result<HandleResponse, ContractError> {
+pub fn repay_stable(
+    deps: DepsMut,
+    env: Env,
+    borrower: HumanAddr,
+    amount: Uint256,
+) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     // Cannot deposit zero amount
     if amount.is_zero() {
-        return Err(ContractError::ZeroRepay{});
+        return Err(ContractError::ZeroRepay {});
     }
 
     let mut state: State = read_state(deps.storage)?;
@@ -151,10 +153,7 @@ pub fn repay_stable(deps: DepsMut, env: Env, borrower: HumanAddr, amount: Uint25
             contract_addr: HumanAddr(config.stable_addr.to_string()),
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: HumanAddr(borrower.to_string()),
-                amount: deduct_tax(
-                    deps.as_ref(),
-                    (amount - repay_amount).into(),
-                )?,
+                amount: deduct_tax(deps.as_ref(), (amount - repay_amount).into())?,
             })?,
             send: vec![],
         }));
@@ -209,16 +208,10 @@ pub fn claim_rewards(
 
     let messages: Vec<CosmosMsg> = if !claim_amount.is_zero() {
         vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: deps
-                .api
-                .human_address(&config.distributor_contract)?,
+            contract_addr: deps.api.human_address(&config.distributor_contract)?,
             send: vec![],
             msg: to_binary(&FaucetExecuteMsg::Spend {
-                recipient: if let Some(to) = to {
-                    to
-                } else {
-                    borrower
-                },
+                recipient: if let Some(to) = to { to } else { borrower },
                 amount: claim_amount.into(),
             })?,
         })]
@@ -366,10 +359,8 @@ pub fn query_borrower_info(
     borrower: HumanAddr,
     block_height: Option<u64>,
 ) -> StdResult<BorrowerInfoResponse> {
-    let mut borrower_info: BorrowerInfo = read_borrower_info(
-        deps.storage,
-        &deps.api.canonical_address(&borrower)?,
-    );
+    let mut borrower_info: BorrowerInfo =
+        read_borrower_info(deps.storage, &deps.api.canonical_address(&borrower)?);
 
     let block_height = if let Some(block_height) = block_height {
         block_height

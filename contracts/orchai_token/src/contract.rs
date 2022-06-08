@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    Binary, CosmosMsg, Env, DepsMut, Deps, InitResponse,
-    StdError, StdResult, WasmMsg, MessageInfo, HandleResponse, MigrateResponse, entry_point,
+    entry_point, Binary, CosmosMsg, Deps, DepsMut, Env, HandleResponse, InitResponse, MessageInfo,
+    MigrateResponse, StdError, StdResult, WasmMsg,
 };
 use cw20_base::ContractError;
 
@@ -12,7 +12,6 @@ use cw20_base::msg::{HandleMsg, MigrateMsg, QueryMsg};
 use cw20_base::state::{token_info, MinterData, TokenInfo};
 
 use anchor_token::token::InitMsg;
-    
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw20-base";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -93,10 +92,6 @@ pub fn migrate(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(
-    deps: Deps,
-    _env: Env,
-    msg: QueryMsg,
-) -> StdResult<Binary> {
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     cw20_query(deps, _env, msg)
 }

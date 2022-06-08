@@ -1,12 +1,12 @@
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use cosmwasm_bignumber::{Uint256, Decimal256};
+use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     to_binary, AllBalanceResponse, BalanceResponse, BankQuery, Coin, Deps, HumanAddr, QueryRequest,
     StdError, StdResult, Uint128, WasmQuery,
 };
 use cw20::{Cw20QueryMsg, TokenInfoResponse};
 use oraiswap::oracle::OracleContract;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 // use terra_cosmwasm::TerraQuerier;
 
@@ -22,7 +22,11 @@ pub fn query_all_balances(deps: Deps, account_addr: HumanAddr) -> StdResult<Vec<
     Ok(all_balances.amount)
 }
 
-pub fn query_balance(deps: Deps, account_addr: HumanAddr, stable_addr: HumanAddr) -> StdResult<Uint256> {
+pub fn query_balance(
+    deps: Deps,
+    account_addr: HumanAddr,
+    stable_addr: HumanAddr,
+) -> StdResult<Uint256> {
     // load price form the oracle
     let balance: BalanceResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: stable_addr,
@@ -63,10 +67,14 @@ pub fn query_supply(deps: Deps, contract_addr: HumanAddr) -> StdResult<Uint256> 
     Ok(Uint256::from(token_info.total_supply))
 }
 
-pub fn query_tax_rate_and_cap(deps: Deps, denom: String, orai_oracle: HumanAddr) -> StdResult<(Decimal256, Uint256)> {
+pub fn query_tax_rate_and_cap(
+    deps: Deps,
+    denom: String,
+    orai_oracle: HumanAddr,
+) -> StdResult<(Decimal256, Uint256)> {
     let orai_querier = OracleContract(orai_oracle);
     let rate = orai_querier.query_tax_rate(&deps.querier)?.rate;
-    let cap = orai_querier.query_tax_cap(&deps.querier,denom)?.cap;
+    let cap = orai_querier.query_tax_cap(&deps.querier, denom)?.cap;
     Ok((rate.into(), cap.into()))
 }
 
@@ -75,7 +83,12 @@ pub fn query_tax_rate(deps: Deps, orai_oracle: HumanAddr) -> StdResult<Decimal25
     Ok(orai_querier.query_tax_rate(&deps.querier)?.rate.into())
 }
 
-pub fn compute_tax(deps: Deps, coin: &Coin, denom: String, orai_oracle: HumanAddr) -> StdResult<Uint256> {
+pub fn compute_tax(
+    deps: Deps,
+    coin: &Coin,
+    denom: String,
+    orai_oracle: HumanAddr,
+) -> StdResult<Uint256> {
     let orai_querier = OracleContract(orai_oracle);
     let tax_rate = Decimal256::from(orai_querier.query_tax_rate(&deps.querier)?.rate);
     let tax_cap = Uint256::from(orai_querier.query_tax_cap(&deps.querier, denom)?.cap);

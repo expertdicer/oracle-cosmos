@@ -1,7 +1,7 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, to_binary, HumanAddr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    StdResult, Uint128, WasmMsg, HandleResponse,
+    attr, to_binary, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, HandleResponse, HumanAddr,
+    MessageInfo, StdResult, Uint128, WasmMsg,
 };
 
 use crate::borrow::{compute_interest, compute_reward};
@@ -59,8 +59,7 @@ pub fn deposit_stable(
                 recipient: sender,
                 amount: mint_amount.into(),
             })?,
-        }),
-        ],
+        })],
         data: None,
     };
     Ok(res)
@@ -132,7 +131,7 @@ fn assert_redeem_amount(
     let current_balance = Decimal256::from_uint256(current_balance);
     let redeem_amount = Decimal256::from_uint256(redeem_amount);
     if redeem_amount + state.total_reserves > current_balance {
-        return Err(ContractError::NoStableAvailable{});
+        return Err(ContractError::NoStableAvailable {});
     }
 
     Ok(HandleResponse::default())

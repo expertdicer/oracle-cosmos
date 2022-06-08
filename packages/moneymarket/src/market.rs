@@ -2,9 +2,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
+use cosmwasm_std::{Attribute, Binary, HumanAddr, Uint128};
 use cw20::Cw20ReceiveMsg;
 use cw20::{Cw20Coin, MinterResponse};
-use cosmwasm_std::{HumanAddr, Attribute, Binary, Uint128};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -18,8 +18,7 @@ pub struct InstantiateMsg {
     /// Anchor token distribution speed
     pub anc_emission_rate: Decimal256,
     /// Maximum allowed borrow rate over deposited stable balance
-    pub max_borrow_factor: Decimal256, 
-
+    pub max_borrow_factor: Decimal256,
     // pub hook_msg: HookMsg,
 }
 
@@ -30,7 +29,6 @@ pub struct HookMsg {
     pub amount: Uint256,
     pub recipient: HumanAddr,
 }
-
 
 /// TokenContract InstantiateMsg
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -116,14 +114,14 @@ pub enum ExecuteMsg {
     RegisterATerra {},
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // huhu
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)] // huhu
 #[serde(rename_all = "snake_case")]
 pub struct InitHook {
     pub msg: Binary,
     pub contract_addr: HumanAddr,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // fixme
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)] // fixme
 #[serde(rename_all = "snake_case")]
 pub enum SubMsgResult {
     Ok(SubMsgResponse),
@@ -175,14 +173,14 @@ impl From<SubMsgResult> for Result<SubMsgResponse, String> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // fixme
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)] // fixme
 #[serde(rename_all = "snake_case")]
 pub struct SubMsgResponse {
     pub events: Vec<Event>,
     pub data: Option<Binary>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]  // fixme
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)] // fixme
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub struct Event {

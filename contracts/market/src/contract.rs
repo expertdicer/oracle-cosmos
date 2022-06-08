@@ -10,19 +10,22 @@ use crate::error::ContractError;
 use crate::querier::{query_borrow_rate, query_target_deposit_rate};
 use crate::state::{read_config, read_state, store_config, store_state, Config, State};
 
+use anchor_token::hook::InitHook;
+use anchor_token::token::InitMsg;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    attr, from_binary, to_binary, HumanAddr, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps, QueryRequest, WasmQuery,
-    DepsMut, Env, MessageInfo, StdError, StdResult, Uint128, WasmMsg, InitResponse, HandleResponse, MigrateResponse
+    attr, from_binary, to_binary, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg, Deps, DepsMut,
+    Env, HandleResponse, HumanAddr, InitResponse, MessageInfo, MigrateResponse, QueryRequest,
+    StdError, StdResult, Uint128, WasmMsg, WasmQuery,
 };
-use cw20::{Cw20Coin, Cw20ReceiveMsg, MinterResponse, Cw20HandleMsg};
+use cw20::TokenInfoResponse;
+use cw20::{Cw20Coin, Cw20CoinHuman, Cw20HandleMsg, Cw20ReceiveMsg, MinterResponse};
 use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::{
     ConfigResponse, Cw20HookMsg, EpochStateResponse, ExecuteMsg, InstantiateMsg, MigrateMsg,
-    QueryMsg, StateResponse,TokenInstantiateMsg, InitHook,
+    QueryMsg, StateResponse, TokenInstantiateMsg,
 };
 use moneymarket::querier::{deduct_tax, query_balance, query_supply};
-use cw20::TokenInfoResponse;
 
 pub const INITIAL_DEPOSIT_AMOUNT: u128 = 1000000;
 
@@ -33,7 +36,6 @@ pub fn init(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<InitResponse, ContractError> {
-    
     let mut messages: Vec<CosmosMsg> = vec![];
     // match msg.hook_msg {
     //     moneymarket::market::HookMsg {contract_addr, amount, recipient} => {
@@ -58,7 +60,9 @@ pub fn init(
     store_config(
         deps.storage,
         &Config {
-            contract_addr: deps.api.canonical_address(&HumanAddr(env.contract.address.to_string()))?,
+            contract_addr: deps
+                .api
+                .canonical_address(&HumanAddr(env.contract.address.to_string()))?,
             owner_addr: deps.api.canonical_address(&msg.owner_addr)?,
             aterra_contract: CanonicalAddr::from(vec![]),
             overseer_contract: CanonicalAddr::from(vec![]),
@@ -86,25 +90,48 @@ pub fn init(
         },
     )?;
 
-    let stable_name = query_stable_name(deps.as_ref(), msg.stable_addr.clone())?;
+    // let stable_name = query_stable_name(deps.as_ref(), msg.stable_addr.clone())?;
+
+    // messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
+    //     code_id: msg.orchai_code_id,
+    //     send: vec![],
+    //     label: Some("".to_string()),
+    //     msg: to_binary(&TokenInstantiateMsg {
+    //         name: format!("Orchai {}", stable_name[1..].to_uppercase()),
+    //         symbol: format!(
+    //             "o{}T",
+    //             stable_name[1..(stable_name.len() - 1)].to_uppercase()
+    //         ),
+    //         decimals: 6u8,
+    //         initial_balances: vec![Cw20Coin {
+    //             address: CanonicalAddr(to_binary(&env.contract.address)?),
+    //             amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
+    //         }],
+    //         mint: Some(MinterResponse {
+    //             minter: HumanAddr(env.contract.address.to_string()),
+    //             cap: None,
+    //         }),
+    //         init_hook: Some(InitHook {
+    //             contract_addr: env.contract.address,
+    //             msg: to_binary(&ExecuteMsg::RegisterATerra {})?,
+    //         }),
+    //     })?,
+    // }));
 
     messages.push(CosmosMsg::Wasm(WasmMsg::Instantiate {
         code_id: msg.orchai_code_id,
         send: vec![],
         label: Some("".to_string()),
-        msg: to_binary(&TokenInstantiateMsg {
-            name: format!("Orchai {}", stable_name[1..].to_uppercase()),
-            symbol: format!(
-                "o{}T",
-                stable_name[1..(stable_name.len() - 1)].to_uppercase()
-            ),
+        msg: to_binary(&InitMsg {
+            name: "Orchai Usdt".to_string(),
+            symbol: "oUSDT".to_string(),
             decimals: 6u8,
-            initial_balances: vec![Cw20Coin {
-                address: CanonicalAddr(to_binary(&env.contract.address)?),
+            initial_balances: vec![Cw20CoinHuman {
+                address: HumanAddr(env.contract.address.clone().to_string()),
                 amount: Uint128::from(INITIAL_DEPOSIT_AMOUNT),
             }],
             mint: Some(MinterResponse {
-                minter: HumanAddr(env.contract.address.to_string()),
+                minter: HumanAddr(env.contract.address.clone().to_string()),
                 cap: None,
             }),
             init_hook: Some(InitHook {
@@ -118,18 +145,14 @@ pub fn init(
         attributes: vec![],
         messages: messages,
     };
-    Ok(res) 
+    Ok(res)
 }
 
-fn query_stable_name(
-    deps: Deps,
-    stable_addr: HumanAddr,
-) -> StdResult<String> {
+fn query_stable_name(deps: Deps, stable_addr: HumanAddr) -> StdResult<String> {
     let query_response: TokenInfoResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: stable_addr,
-            msg: to_binary(&cw20_base::msg::QueryMsg::TokenInfo {
-            })?,
+            msg: to_binary(&cw20_base::msg::QueryMsg::TokenInfo {})?,
         }))?;
 
     Ok(query_response.name)
@@ -144,39 +167,35 @@ pub fn handle(
 ) -> Result<HandleResponse, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
-        ExecuteMsg::RegisterATerra{} => register_aterra(deps, env, info),
+        ExecuteMsg::RegisterATerra {} => register_aterra(deps, env, info),
         ExecuteMsg::RegisterContracts {
             overseer_contract,
             interest_model,
             distribution_model,
             collector_contract,
             distributor_contract,
-        } => {
-            register_contracts(
-                deps,
-                overseer_contract,
-                interest_model,
-                distribution_model,
-                collector_contract,
-                distributor_contract,
-            )
-        }
+        } => register_contracts(
+            deps,
+            overseer_contract,
+            interest_model,
+            distribution_model,
+            collector_contract,
+            distributor_contract,
+        ),
         ExecuteMsg::UpdateConfig {
             owner_addr,
             interest_model,
             distribution_model,
             max_borrow_factor,
-        } => {
-            update_config(
-                deps,
-                env,
-                info,
-                owner_addr,
-                interest_model,
-                distribution_model,
-                max_borrow_factor,
-            )
-        }
+        } => update_config(
+            deps,
+            env,
+            info,
+            owner_addr,
+            interest_model,
+            distribution_model,
+            max_borrow_factor,
+        ),
         ExecuteMsg::ExecuteEpochOperations {
             deposit_rate,
             target_deposit_rate,
@@ -192,13 +211,7 @@ pub fn handle(
             distributed_interest,
         ),
         ExecuteMsg::BorrowStable { borrow_amount, to } => {
-            borrow_stable(
-                deps,
-                env,
-                info,
-                borrow_amount,
-                to,
-            )
+            borrow_stable(deps, env, info, borrow_amount, to)
         }
         ExecuteMsg::RepayStableFromLiquidation {
             borrower,
@@ -213,12 +226,9 @@ pub fn handle(
                 prev_balance,
             )
         }
-        ExecuteMsg::ClaimRewards { to } => {
-            claim_rewards(deps, env, info, to)
-        }
+        ExecuteMsg::ClaimRewards { to } => claim_rewards(deps, env, info, to),
     }
 }
-
 
 pub fn receive_cw20(
     deps: DepsMut,
@@ -231,7 +241,11 @@ pub fn receive_cw20(
         Ok(Cw20HookMsg::RedeemStable {}) => {
             // only asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
-            if deps.api.canonical_address(&HumanAddr(contract_addr.to_string()))? != config.aterra_contract {
+            if deps
+                .api
+                .canonical_address(&HumanAddr(contract_addr.to_string()))?
+                != config.aterra_contract
+            {
                 return Err(ContractError::Unauthorized {});
             }
 
@@ -239,7 +253,11 @@ pub fn receive_cw20(
         }
         Ok(Cw20HookMsg::DepositStabe {}) => {
             let config: Config = read_config(deps.storage)?;
-            if deps.api.canonical_address(&HumanAddr(contract_addr.to_string()))? != config.stable_addr {
+            if deps
+                .api
+                .canonical_address(&HumanAddr(contract_addr.to_string()))?
+                != config.stable_addr
+            {
                 return Err(ContractError::Unauthorized {});
             }
 
@@ -247,7 +265,11 @@ pub fn receive_cw20(
         }
         Ok(Cw20HookMsg::RepayStable {}) => {
             let config: Config = read_config(deps.storage)?;
-            if deps.api.canonical_address(&HumanAddr(contract_addr.to_string()))? != config.stable_addr {
+            if deps
+                .api
+                .canonical_address(&HumanAddr(contract_addr.to_string()))?
+                != config.stable_addr
+            {
                 return Err(ContractError::Unauthorized {});
             }
 
@@ -257,7 +279,11 @@ pub fn receive_cw20(
     }
 }
 
-pub fn register_aterra(deps: DepsMut, _env: Env, info: MessageInfo,) -> Result<HandleResponse, ContractError> {
+pub fn register_aterra(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     if config.aterra_contract != CanonicalAddr::from(vec![]) {
         return Err(ContractError::Unauthorized {});
@@ -329,7 +355,11 @@ pub fn update_config(
     let mut config: Config = read_config(deps.storage)?;
 
     // permission check
-    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner_addr {
+    if deps
+        .api
+        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        != config.owner_addr
+    {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -373,7 +403,11 @@ pub fn execute_epoch_operations(
     distributed_interest: Uint256,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    if config.overseer_contract != deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? {
+    if config.overseer_contract
+        != deps
+            .api
+            .canonical_address(&HumanAddr(info.sender.to_string()))?
+    {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -421,16 +455,13 @@ pub fn execute_epoch_operations(
         state.total_reserves = state.total_reserves - Decimal256::from_uint256(total_reserves);
 
         vec![CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: HumanAddr(config.stable_addr.to_string()),
-                msg: to_binary(&Cw20HandleMsg::Transfer {
-                    recipient: deps
-                        .api
-                        .human_address(&config.collector_contract)?,
-                    amount: deduct_tax(deps.as_ref(), total_reserves.into())?,
-                })?,
-                send: vec![],
-            })
-        ]
+            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: deps.api.human_address(&config.collector_contract)?,
+                amount: deduct_tax(deps.as_ref(), total_reserves.into())?,
+            })?,
+            send: vec![],
+        })]
     } else {
         vec![]
     };
@@ -467,14 +498,13 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         } => to_binary(&query_borrower_info(
             deps,
             env,
-            deps.api.human_address(&CanonicalAddr(to_binary(&borrower)?))?,
+            deps.api
+                .human_address(&CanonicalAddr(to_binary(&borrower)?))?,
             block_height,
         )?),
-        QueryMsg::BorrowerInfos { start_after, limit } => to_binary(&query_borrower_infos(
-            deps,
-            start_after,
-            limit,
-        )?),
+        QueryMsg::BorrowerInfos { start_after, limit } => {
+            to_binary(&query_borrower_infos(deps, start_after, limit)?)
+        }
     }
 }
 
@@ -604,6 +634,11 @@ pub fn query_epoch_state(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(_deps: DepsMut, _env: Env, _info: MessageInfo, _msg: MigrateMsg) -> StdResult<MigrateResponse> {
+pub fn migrate(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    _msg: MigrateMsg,
+) -> StdResult<MigrateResponse> {
     Ok(MigrateResponse::default())
 }

@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cw20HookMsg",
+  "anyOf": [
+    {
+      "description": "Return stable coins to a user according to exchange rate",
+      "type": "object",
+      "required": [
+        "redeem_stable"
+      ],
+      "properties": {
+        "redeem_stable": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "deposit_stabe"
+      ],
+      "properties": {
+        "deposit_stabe": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "repay_stable"
+      ],
+      "properties": {
+        "repay_stable": {
+          "type": "object"
+        }
+      }
+    }
+  ]
+}
