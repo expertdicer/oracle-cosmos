@@ -24,7 +24,7 @@ pub struct Config {
     pub reward_contract: CanonicalAddr,
     pub liquidation_contract: CanonicalAddr,
     pub swap_contract: CanonicalAddr,
-    pub stable_denom: String,
+    pub stable_addr: CanonicalAddr,
     pub basset_info: BAssetInfo,
 }
 

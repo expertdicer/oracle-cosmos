@@ -2,12 +2,12 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     attr, from_binary, to_binary, HumanAddr, Binary, Deps, DepsMut, Env, MessageInfo, HandleResponse, 
-    InitResponse, StdResult, CosmosMsg, BankMsg, Coin, Uint128, StdError,
+    InitResponse, StdResult, CosmosMsg, BankMsg, Coin, Uint128, StdError, WasmMsg,
 };
 use crate::error::ContractError;
-use crate::msgs::{InstantiateMsg, ExecuteMsg, QueryMsg, Cw20HookMsg, ConfigResponse};
+use moneymarket::dex::{InstantiateMsg, ExecuteMsg, QueryMsg, Cw20HookMsg, ConfigResponse};
 use crate::state::{read_config, store_config, Config};
-use cw20::Cw20ReceiveMsg;
+use cw20::{Cw20ReceiveMsg, Cw20HandleMsg};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -36,6 +36,7 @@ pub fn handle(
 ) -> Result<HandleResponse, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
+        ExecuteMsg::SwapForStable { recipient} => swap_for_stable(deps,env, info, recipient),
         ExecuteMsg::UpdateConfig {
             owner,
             input_token,
@@ -99,6 +100,42 @@ pub fn send_denom(
         })],
         data:None,
     })
+}
+
+pub fn swap_for_stable(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    receiver: HumanAddr,
+) -> Result<HandleResponse, ContractError> {
+    let config: Config = read_config(deps.storage)?;
+
+    let mut amount: Uint128;
+    match info.sent_funds.iter().find(|x| x.denom.eq(&"orai".to_string())){
+        Some(coin) => {
+            amount = coin.amount;
+        }
+        None => { 
+            return Err(ContractError::ZeroDepositUnallowed{})
+        }
+    };
+    Ok( HandleResponse { 
+        attributes: vec![
+            attr("action", "swap_for_stable"),
+            attr("receiver", receiver.as_str()),
+            attr("amount", amount.to_string()),
+        ],
+        messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: env.contract.address,
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: receiver,
+                amount: amount,
+            })?,
+            send: vec![],
+        })],
+        data:None,
+    })
+        
 }
 
 pub fn update_config(

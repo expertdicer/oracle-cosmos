@@ -187,6 +187,18 @@ pub fn liquidate_collateral(
         })
         .filter(|msg| msg.is_ok())
         .collect::<StdResult<Vec<CosmosMsg>>>()?;
+    
+    let send_stable_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: HumanAddr(config.stable_addr.to_string()),
+        msg: to_binary(&Cw20HandleMsg::Transfer {   // fixme critical
+            recipient: market_contract,
+            amount: deduct_tax(
+                deps.as_ref(),
+                (amount - repay_amount).into(),
+            )?,
+        })?,
+        send: vec![],
+    });
     let execute_msg = CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: market_contract,
         send: vec![],

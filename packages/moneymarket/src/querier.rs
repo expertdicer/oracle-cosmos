@@ -22,11 +22,13 @@ pub fn query_all_balances(deps: Deps, account_addr: HumanAddr) -> StdResult<Vec<
     Ok(all_balances.amount)
 }
 
-pub fn query_balance(deps: Deps, account_addr: HumanAddr, denom: String) -> StdResult<Uint256> {
+pub fn query_balance(deps: Deps, account_addr: HumanAddr, stable_addr: HumanAddr) -> StdResult<Uint256> {
     // load price form the oracle
-    let balance: BalanceResponse = deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
-        address: account_addr,
-        denom,
+    let balance: BalanceResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: stable_addr,
+        msg: to_binary(&Cw20QueryMsg::Balance {
+            address: account_addr,
+        })?,
     }))?;
     Ok(balance.amount.amount.into())
 }
@@ -107,13 +109,10 @@ pub fn compute_tax(deps: Deps, coin: &Coin, denom: String, orai_oracle: HumanAdd
 //     ))
 // }
 
-pub fn deduct_tax(_deps: Deps, coin: Coin) -> StdResult<Coin> {
+pub fn deduct_tax(_deps: Deps, amount: Uint128) -> StdResult<Uint128> {
     // let tax_amount = compute_tax(deps, &coin)?;
     let tax_amount: Uint256 = Uint256::zero();
-    Ok(Coin {
-        denom: coin.denom,
-        amount: (Uint256::from(coin.amount) - tax_amount).into(),
-    })
+    Ok((Uint256::from(amount) - tax_amount).into())
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

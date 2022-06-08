@@ -21,18 +21,18 @@ pub enum ContractError {
     #[error("Invalid reply ID")]
     InvalidReplyId {},
 
-    #[error("Exceeds {0} max borrow factor; borrow demand too high")]
-    MaxBorrowFactorReached(String),
+    #[error("Exceeds stable max borrow factor; borrow demand too high")]
+    MaxBorrowFactorReached {},
 
     #[error("Invalid request: \"redeem stable\" message not included in request")]
     MissingRedeemStableHook {},
 
-    #[error("Not enough {0} available; borrow demand too high")]
-    NoStableAvailable(String),
+    #[error("Not enough stable available; borrow demand too high")]
+    NoStableAvailable {},
 
-    #[error("Deposit amount must be greater than 0 {0}")]
-    ZeroDeposit(String),
+    #[error("Deposit amount must be greater than 0")]
+    ZeroDeposit{},
 
-    #[error("Repay amount must be greater than 0 {0}")]
-    ZeroRepay(String),
+    #[error("Repay amount must be greater than 0")]
+    ZeroRepay {},
 }

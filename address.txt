@@ -1,3 +1,6 @@
 token <-- oracle <-- factory <-- router <-- rewarder <-- staking 
 token: orai13sr0y5rqg4wan4nqsc3k0w6pgdntknd6m06xaq
 oracle: orai1l80f659v462np64sc77pq0sj07rad8nctqlzpe
+
+
+usdt: orai1zuazyjs8wkv3jjefy5dff02wqs3pn007h35fqe

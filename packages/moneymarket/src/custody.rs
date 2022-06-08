@@ -24,7 +24,7 @@ pub struct InstantiateMsg {
     pub swap_contract: HumanAddr, // fixmed
     /// Expected reward denom. If bAsset reward is not same with
     /// it, we try to convert the reward to the `stable_denom`.
-    pub stable_denom: String,
+    pub stable_addr: HumanAddr,
     pub basset_info: BAssetInfo,
 }
 
@@ -105,7 +105,7 @@ pub struct ConfigResponse {
     pub market_contract: String,
     pub reward_contract: String,
     pub liquidation_contract: String,
-    pub stable_denom: String,
+    pub stable_addr: String,
     pub basset_info: BAssetInfo,
 }
 

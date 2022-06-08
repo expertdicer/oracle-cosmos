@@ -8,7 +8,7 @@ use cosmwasm_std::entry_point;
 
 use cosmwasm_std::{
     attr, to_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, HandleResponse,
-    HumanAddr, InitResponse, MessageInfo, StakingMsg, StdResult, WasmMsg,
+    HumanAddr, InitResponse, MessageInfo, StakingMsg, StdResult, WasmMsg, Uint128
 };
 
 use crate::msgs::{ClaimableResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -112,6 +112,13 @@ pub fn staking_orai(
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
     // user send orai to contract
+
+    let initial_deposit = _info
+        .sent_funds
+        .iter()
+        .find(|c| c.denom == config.native_token_denom)
+        .map(|c| c.amount)
+        .unwrap_or_else(Uint128::zero);
 
     let mut messages: Vec<CosmosMsg> = vec![];
     // delegate orai to validator

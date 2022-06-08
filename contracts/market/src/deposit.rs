@@ -14,21 +14,17 @@ use cw20::Cw20HandleMsg;
 pub fn deposit_stable(
     deps: DepsMut,
     env: Env,
-    info: MessageInfo,
+    sender: HumanAddr,
+    amount: Uint128,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
 
     // Check base denom deposit
-    let deposit_amount: Uint256 = info
-        .sent_funds
-        .iter()
-        .find(|c| c.denom == config.stable_denom)
-        .map(|c| Uint256::from(c.amount))
-        .unwrap_or_else(Uint256::zero);
+    let deposit_amount: Uint256 = Uint256::from(amount);
 
     // Cannot deposit zero amount
     if deposit_amount.is_zero() {
-        return Err(ContractError::ZeroDeposit(config.stable_denom));
+        return Err(ContractError::ZeroDeposit {});
     }
 
     // Update interest related state
@@ -52,7 +48,7 @@ pub fn deposit_stable(
     let res = HandleResponse {
         attributes: vec![
             attr("action", "deposit_stable"),
-            attr("depositor", info.sender.to_string()),
+            attr("depositor", sender.to_string()),
             attr("mint_amount", mint_amount),
             attr("deposit_amount", deposit_amount),
         ],
@@ -60,7 +56,7 @@ pub fn deposit_stable(
             contract_addr: deps.api.human_address(&config.aterra_contract)?,
             send: vec![],
             msg: to_binary(&Cw20HandleMsg::Mint {
-                recipient: info.sender,
+                recipient: sender,
                 amount: mint_amount.into(),
             })?,
         }),
@@ -91,7 +87,7 @@ pub fn redeem_stable(
     let current_balance = query_balance(
         deps.as_ref(),
         query_target,
-        config.stable_denom.to_string(),
+        HumanAddr(config.stable_addr.to_string()),
     )?;
 
     // Assert redeem amount
@@ -113,16 +109,13 @@ pub fn redeem_stable(
                     amount: burn_amount,
                 })?,
             }),
-            CosmosMsg::Bank(BankMsg::Send {
-                from_address: env.contract.address,
-                to_address: sender,
-                amount: vec![deduct_tax(
-                    deps.as_ref(),
-                    Coin {
-                        denom: config.stable_denom,
-                        amount: redeem_amount.into(),
-                    },
-                )?],
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: HumanAddr(config.stable_addr.to_string()),
+                msg: to_binary(&Cw20HandleMsg::Transfer {
+                    recipient: sender,
+                    amount: redeem_amount.into(),
+                })?,
+                send: vec![],
             }),
         ],
         data: None,
@@ -139,9 +132,7 @@ fn assert_redeem_amount(
     let current_balance = Decimal256::from_uint256(current_balance);
     let redeem_amount = Decimal256::from_uint256(redeem_amount);
     if redeem_amount + state.total_reserves > current_balance {
-        return Err(ContractError::NoStableAvailable(
-            config.stable_denom.clone(),
-        ));
+        return Err(ContractError::NoStableAvailable{});
     }
 
     Ok(HandleResponse::default())
@@ -157,7 +148,7 @@ pub(crate) fn compute_exchange_rate(
     let balance = query_balance(
         deps,
         deps.api.human_address(&config.contract_addr)?,
-        config.stable_denom.to_string(),
+        HumanAddr(config.stable_addr.to_string()),
     )? - deposit_amount.unwrap_or_else(Uint256::zero);
 
     Ok(compute_exchange_rate_raw(state, aterra_supply, balance))

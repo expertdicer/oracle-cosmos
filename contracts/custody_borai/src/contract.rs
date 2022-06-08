@@ -36,7 +36,7 @@ pub fn init(
         reward_contract: deps.api.canonical_address(&msg.reward_contract)?,
         liquidation_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
         swap_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
-        stable_denom: msg.stable_denom,
+        stable_addr: deps.api.canonical_address(&msg.stable_addr)?,
         basset_info: msg.basset_info,
     };
 
@@ -172,7 +172,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .api
             .human_address(&config.liquidation_contract)?
             .to_string(),
-        stable_denom: config.stable_denom,
+        stable_addr: deps.api.human_address(&config.stable_addr)?.to_string(),
         basset_info: config.basset_info,
     })
 }

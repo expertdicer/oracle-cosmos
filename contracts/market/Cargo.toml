@@ -37,6 +37,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 moneymarket = { path = "../../packages/moneymarket", default-features = false, version = "0.3.1"}
 anchor-token = { path = "../../packages/anchor_token", version = "0.3.0"}
 cw20 = "0.5.0"
+cw20-base = {version = "0.5.0", features = ["library"]}
 protobuf = { version = "2", features = ["with-bytes"] }
 cosmwasm-bignumber = { path = "../../packages/bignumber", default-features = false, version = "2.3.0"}
 cosmwasm-std = "0.13.2"

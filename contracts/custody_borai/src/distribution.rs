@@ -1,7 +1,7 @@
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
-    attr, to_binary, HumanAddr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest,
-    HandleResponse, StdResult, Uint128, WasmMsg, WasmQuery,
+    attr, to_binary, HumanAddr, BankMsg, BalanceResponse, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryRequest,
+    HandleResponse, StdResult, Uint128, WasmMsg, WasmQuery, BankQuery,
 };
 
 use crate::error::ContractError;
@@ -11,6 +11,7 @@ use moneymarket::querier::{query_all_balances, deduct_tax, query_balance};
 use moneymarket::custody::ExecuteMsg;
 use oraiswap::router::SwapOperation;
 use oraiswap::asset::AssetInfo;
+use cw20::Cw20HandleMsg;
 
 // REWARD_THRESHOLD
 // This value is used as the minimum reward claim amount
@@ -80,20 +81,17 @@ pub fn distribute_hook(
     let reward_amount: Uint256 = query_balance(
         deps.as_ref(),
         env.contract.address.clone(),
-        config.stable_denom.to_string(),
+        HumanAddr(config.stable_addr.to_string()),
     )?;
     let mut messages: Vec<CosmosMsg> = vec![];      // fixme
     if !reward_amount.is_zero() {
-        messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address ,         
-            to_address: overseer_contract,
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom,
-                    amount: reward_amount.into(),
-                },
-            )?],
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: overseer_contract,
+                amount: reward_amount.into(),
+            })?,
+            send: vec![],
         }));
     }
 
@@ -119,14 +117,29 @@ pub fn swap_to_stable_denom(
     let swap_contract = deps.api.human_address(&config.swap_contract)?;
     let contract_addr = env.contract.address.clone();
     let balances: Vec<Coin> = query_all_balances(deps.as_ref(), contract_addr)?;
-    let mut messages: Vec<CosmosMsg> = balances
-        .iter()
-        .filter(|x| x.denom != config.stable_denom.clone())
-        .map(|coin: &Coin| { create_swap_msg(&coin, config.stable_denom.as_str(), swap_contract.clone())}
-        )// fixme
-        .collect::<StdResult<Vec<CosmosMsg>>>()?;
+    let balance_res: BalanceResponse = deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
+        address: env.contract.address.clone(),
+        denom: "orai".to_string()
+    }))?;
+    let orai_balance: Uint128 = balance_res.amount.amount;
+    // let mut messages: Vec<CosmosMsg> = balances
+    //     .iter()
+    //     .filter(|x| x.denom != config.stable_denom.clone())
+    //     .map(|coin: &Coin| { create_swap_msg(&coin, config.stable_denom.as_str(), swap_contract.clone())}
+    //     )// fixme
+    //     .collect::<StdResult<Vec<CosmosMsg>>>()?;
 
-
+    let mut messages = vec![CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: swap_contract,
+        msg: to_binary(&moneymarket::dex::ExecuteMsg::SwapForStable{ 
+            recipient: env.contract.address,
+        })?,
+        send: vec![Coin {
+            denom: "orai".to_string(),
+            amount: orai_balance,
+        }],
+    })];
+    
     let res = HandleResponse {
         attributes: vec![],
         messages: messages,
