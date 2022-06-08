@@ -8,7 +8,7 @@ use cosmwasm_std::entry_point;
 
 use cosmwasm_std::{
     attr, to_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, HandleResponse,
-    HumanAddr, InitResponse, MessageInfo, StakingMsg, StdResult, WasmMsg, Uint128
+    HumanAddr, InitResponse, MessageInfo, StakingMsg, StdResult, Uint128, WasmMsg,
 };
 
 use crate::msgs::{ClaimableResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -113,12 +113,12 @@ pub fn staking_orai(
     let config: Config = read_config(deps.storage)?;
     // user send orai to contract
 
-    let initial_deposit = _info
-        .sent_funds
-        .iter()
-        .find(|c| c.denom == config.native_token_denom)
-        .map(|c| c.amount)
-        .unwrap_or_else(Uint128::zero);
+    // let initial_deposit = _info
+    //     .sent_funds
+    //     .iter()
+    //     .find(|c| c.denom == config.native_token_denom)
+    //     .map(|c| c.amount)
+    //     .unwrap_or_else(Uint128::zero);
 
     let mut messages: Vec<CosmosMsg> = vec![];
     // delegate orai to validator
@@ -126,7 +126,7 @@ pub fn staking_orai(
         validator: config.validator_to_delegate.clone(),
         amount: Coin {
             denom: config.native_token_denom,
-            amount: amount.into(),
+            amount: amount.clone().into(),
         },
     }));
 
@@ -142,32 +142,32 @@ pub fn staking_orai(
 
     // // Calculate reward
 
-    // let sender_raw = deps
-    //     .api
-    //     .canonical_address(&HumanAddr(_info.sender.to_string()))?;
-    // if read_user_reward_elem(deps.storage, &sender_raw).is_err() {
-    //     store_user_reward_elem(
-    //         deps.storage,
-    //         &sender_raw,
-    //         &UserReward {
-    //             last_reward: Uint256::zero(),
-    //             last_time: _env.block.time,
-    //             amount: Uint256::zero(),
-    //         },
-    //     )?;
-    // }
+    let sender_raw = deps
+        .api
+        .canonical_address(&HumanAddr(_info.sender.to_string()))?;
+    if read_user_reward_elem(deps.storage, &sender_raw).is_err() {
+        store_user_reward_elem(
+            deps.storage,
+            &sender_raw,
+            &UserReward {
+                last_reward: Uint256::zero(),
+                last_time: _env.block.time,
+                amount: Uint256::zero(),
+            },
+        )?;
+    }
 
-    // let mut user_reward: UserReward = read_user_reward_elem(deps.storage, &sender_raw)?;
-    // let current_time = _env.block.time;
-    // let year = Decimal256::from_uint256(31536000u128);
-    // let reward =
-    //     user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr
-    //         / year;
-    // user_reward.last_reward += reward;
-    // user_reward.last_time = current_time;
-    // user_reward.amount += amount;
+    let mut user_reward: UserReward = read_user_reward_elem(deps.storage, &sender_raw)?;
+    let current_time = _env.block.time;
+    let year = Decimal256::from_uint256(31536000u128);
+    let reward =
+        user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr
+            / year;
+    user_reward.last_reward += reward;
+    user_reward.last_time = current_time;
+    user_reward.amount += amount;
 
-    // store_user_reward_elem(deps.storage, &sender_raw, &user_reward)?;
+    store_user_reward_elem(deps.storage, &sender_raw, &user_reward)?;
 
     let res = HandleResponse {
         attributes: vec![attr("action", "staking_orai"), attr("amount", amount)],
