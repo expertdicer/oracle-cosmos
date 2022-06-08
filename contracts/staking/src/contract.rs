@@ -1,5 +1,7 @@
 use crate::error::ContractError;
-use crate::state::{read_config, store_config, Config, UserReward, store_user_reward_elem, read_user_reward_elem};
+use crate::state::{
+    read_config, read_user_reward_elem, store_config, store_user_reward_elem, Config, UserReward,
+};
 use cosmwasm_bignumber::{Decimal256, Uint256};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -9,9 +11,8 @@ use cosmwasm_std::{
     HumanAddr, InitResponse, MessageInfo, StakingMsg, StdResult, WasmMsg,
 };
 
-use crate::msgs::{ExecuteMsg, InstantiateMsg, QueryMsg, ConfigResponse, ClaimableResponse};
+use crate::msgs::{ClaimableResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use cw20::Cw20HandleMsg;
-
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -25,7 +26,6 @@ pub fn init(
         &Config {
             owner: msg.owner,
             native_token_denom: msg.native_token_denom,
-            native_token: msg.native_token,
             asset_token: msg.asset_token,
             base_apr: msg.base_apr,
             orchai_token: msg.orchai_token,
@@ -49,7 +49,17 @@ pub fn handle(
             base_apr,
             asset_token,
             validator_to_delegate,
-        } => update_config(deps, _env, info, owner, base_apr, asset_token, validator_to_delegate),
+            orchai_token,
+        } => update_config(
+            deps,
+            _env,
+            info,
+            owner,
+            base_apr,
+            asset_token,
+            validator_to_delegate,
+            orchai_token,
+        ),
         ExecuteMsg::StakingOrai { amount } => staking_orai(deps, _env, info, amount),
         ExecuteMsg::ClaimReward {} => handle_claim_reward(deps, _env, info),
     }
@@ -63,6 +73,7 @@ pub fn update_config(
     base_apr: Option<Decimal256>,
     asset_token: Option<HumanAddr>,
     validator_to_delegate: Option<HumanAddr>,
+    orchai_token: Option<HumanAddr>,
 ) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     if HumanAddr(_info.sender.to_string()) != config.owner {
@@ -85,6 +96,9 @@ pub fn update_config(
         config.validator_to_delegate = validator_to_delegate;
     }
 
+    if let Some(orchai_token) = orchai_token {
+        config.orchai_token = orchai_token;
+    }
 
     store_config(deps.storage, &config)?;
     Ok(HandleResponse::default())
@@ -96,22 +110,20 @@ pub fn staking_orai(
     _info: MessageInfo,
     amount: Uint256,
 ) -> Result<HandleResponse, ContractError> {
-
     let config: Config = read_config(deps.storage)?;
     // user send orai to contract
 
     let mut messages: Vec<CosmosMsg> = vec![];
     // delegate orai to validator
-    messages.push(CosmosMsg::Staking(StakingMsg::Delegate{
+    messages.push(CosmosMsg::Staking(StakingMsg::Delegate {
         validator: config.validator_to_delegate.clone(),
         amount: Coin {
             denom: config.native_token_denom,
             amount: amount.into(),
-        }
+        },
     }));
 
     // mint orai for user
-    
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: config.asset_token,
         send: vec![],
@@ -121,35 +133,37 @@ pub fn staking_orai(
         })?,
     }));
 
-    // Calculate reward
+    // // Calculate reward
 
-    let sender_raw =  deps.api.canonical_address(&HumanAddr(_info.sender.to_string()))?;
-    if read_user_reward_elem(deps.storage,&sender_raw).is_err() {
-        store_user_reward_elem(
-            deps.storage, 
-            &sender_raw, 
-            &UserReward {
-                last_reward: Uint256::zero(),
-                last_time: _env.block.time,
-                amount: Uint256::zero(),
-            })?;
-    }
+    // let sender_raw = deps
+    //     .api
+    //     .canonical_address(&HumanAddr(_info.sender.to_string()))?;
+    // if read_user_reward_elem(deps.storage, &sender_raw).is_err() {
+    //     store_user_reward_elem(
+    //         deps.storage,
+    //         &sender_raw,
+    //         &UserReward {
+    //             last_reward: Uint256::zero(),
+    //             last_time: _env.block.time,
+    //             amount: Uint256::zero(),
+    //         },
+    //     )?;
+    // }
 
-    let mut user_reward: UserReward = read_user_reward_elem(deps.storage,&sender_raw)?;
-    let current_time = _env.block.time;
-    let year = Decimal256::from_uint256(31536000u128);
-    let reward = user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr / year ;
-    user_reward.last_reward += reward;
-    user_reward.last_time = current_time;
-    user_reward.amount += amount;
+    // let mut user_reward: UserReward = read_user_reward_elem(deps.storage, &sender_raw)?;
+    // let current_time = _env.block.time;
+    // let year = Decimal256::from_uint256(31536000u128);
+    // let reward =
+    //     user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr
+    //         / year;
+    // user_reward.last_reward += reward;
+    // user_reward.last_time = current_time;
+    // user_reward.amount += amount;
 
-    store_user_reward_elem(deps.storage, &sender_raw, &user_reward)?;
+    // store_user_reward_elem(deps.storage, &sender_raw, &user_reward)?;
 
     let res = HandleResponse {
-        attributes: vec![
-            attr("action", "staking_orai"),
-            attr("amount", amount),
-        ],
+        attributes: vec![attr("action", "staking_orai"), attr("amount", amount)],
         messages: messages,
         data: None,
     };
@@ -160,18 +174,21 @@ pub fn staking_orai(
 pub fn handle_claim_reward(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo
+    _info: MessageInfo,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    let mut user_raw = deps.api.canonical_address(&HumanAddr(_info.sender.to_string()))?;
+    let user_raw = deps
+        .api
+        .canonical_address(&HumanAddr(_info.sender.to_string()))?;
     let mut user_reward: UserReward = read_user_reward_elem(deps.storage, &user_raw)?;
 
     let current_time = _env.block.time;
     let year = Decimal256::from_uint256(31536000u128);
-    let reward = user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr / year ;
+    let reward =
+        user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr
+            / year;
     user_reward.last_reward += reward;
     user_reward.last_time = current_time;
-    
     // send reward to user
     let mut messages: Vec<CosmosMsg> = vec![];
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -179,59 +196,43 @@ pub fn handle_claim_reward(
         send: vec![],
         msg: to_binary(&Cw20HandleMsg::Transfer {
             recipient: _info.sender,
-            amount: user_reward.last_reward.clone().into()
+            amount: user_reward.last_reward.clone().into(),
         })?,
-    }),);
+    }));
 
     user_reward.last_reward = Uint256::zero();
     store_user_reward_elem(deps.storage, &user_raw, &user_reward)?;
 
     let res = HandleResponse {
-        attributes: vec![
-            attr("claim_reward", "staking_orai"),
-        ],
+        attributes: vec![attr("claim_reward", "staking_orai")],
         messages: messages,
         data: None,
     };
 
     Ok(res)
-    
-
 }
-
-
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::QueryConfig {} => to_binary(&query_config(deps, _env)?),
-        QueryMsg::Claimable {
-            user,
-        } => to_binary(&query_claimable(deps, _env, user)?),
+        QueryMsg::Claimable { user } => to_binary(&query_claimable(deps, _env, user)?),
     }
 }
 
-pub fn query_config(
-    deps: Deps,
-    _env: Env,
-) -> StdResult<ConfigResponse> {
+pub fn query_config(deps: Deps, _env: Env) -> StdResult<ConfigResponse> {
     let config: Config = read_config(deps.storage)?;
-    Ok(ConfigResponse{
+    Ok(ConfigResponse {
         owner: config.owner,
         native_token_denom: config.native_token_denom, // "ORAI"
-        native_token: config.native_token,
         asset_token: config.asset_token,
         base_apr: config.base_apr,
         orchai_token: config.orchai_token,
-        validator_to_delegate: config.validator_to_delegate
-        })
-} 
+        validator_to_delegate: config.validator_to_delegate,
+    })
+}
 
-pub fn query_claimable(
-    deps: Deps,
-    _env: Env,
-    user: HumanAddr
-) -> StdResult<ClaimableResponse> {
+pub fn query_claimable(deps: Deps, _env: Env, user: HumanAddr) -> StdResult<ClaimableResponse> {
     let config: Config = read_config(deps.storage)?;
     let user_raw = deps.api.canonical_address(&HumanAddr(user.to_string()))?;
     let user_reward: UserReward = read_user_reward_elem(deps.storage, &user_raw)?;
@@ -239,10 +240,11 @@ pub fn query_claimable(
     let mut reward = user_reward.last_reward.clone();
     let current_time = _env.block.time;
     let year = Decimal256::from_uint256(31536000u128);
-    reward = reward +  user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr / year;
-    
-    Ok(ClaimableResponse{
-        reward: reward,
-    })
+    reward = reward
+        + user_reward.amount
+            * Uint256::from(current_time - user_reward.last_time)
+            * config.base_apr
+            / year;
 
+    Ok(ClaimableResponse { reward: reward })
 }

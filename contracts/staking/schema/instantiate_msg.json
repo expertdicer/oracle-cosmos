@@ -5,7 +5,6 @@
   "required": [
     "asset_token",
     "base_apr",
-    "native_token",
     "native_token_denom",
     "orchai_token",
     "owner",
@@ -17,9 +16,6 @@
     },
     "base_apr": {
       "$ref": "#/definitions/Decimal256"
-    },
-    "native_token": {
-      "$ref": "#/definitions/HumanAddr"
     },
     "native_token_denom": {
       "type": "string"

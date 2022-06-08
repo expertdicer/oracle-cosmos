@@ -31,6 +31,16 @@
                 }
               ]
             },
+            "orchai_token": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "owner": {
               "anyOf": [
                 {

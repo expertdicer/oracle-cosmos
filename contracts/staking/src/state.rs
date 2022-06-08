@@ -2,8 +2,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::{CanonicalAddr, StdResult, Storage, HumanAddr, StdError};
-use cosmwasm_storage::{singleton, singleton_read, Bucket, ReadonlyBucket, ReadonlySingleton, Singleton};
+use cosmwasm_std::{CanonicalAddr, HumanAddr, StdError, StdResult, Storage};
+use cosmwasm_storage::{
+    singleton, singleton_read, Bucket, ReadonlyBucket, ReadonlySingleton, Singleton,
+};
 
 static KEY_CONFIG: &[u8] = b"config";
 const PREFIX_USER_REWARD: &[u8] = b"user_reward";
@@ -12,7 +14,6 @@ const PREFIX_USER_REWARD: &[u8] = b"user_reward";
 pub struct Config {
     pub owner: HumanAddr,
     pub native_token_denom: String, // "ORAI"
-    pub native_token: HumanAddr,
     pub asset_token: HumanAddr,
     pub base_apr: Decimal256,
     pub orchai_token: HumanAddr,
@@ -45,10 +46,7 @@ pub fn store_user_reward_elem(
     Ok(())
 }
 
-pub fn read_user_reward_elem(
-    storage: &dyn Storage,
-    user: &CanonicalAddr,
-) -> StdResult<UserReward> {
+pub fn read_user_reward_elem(storage: &dyn Storage, user: &CanonicalAddr) -> StdResult<UserReward> {
     let user_reward_bucket: ReadonlyBucket<UserReward> =
         ReadonlyBucket::new(storage, PREFIX_USER_REWARD);
     match user_reward_bucket.load(user.as_slice()) {
