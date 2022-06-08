@@ -16,8 +16,10 @@ use moneymarket::liquidation::LiquidationAmountResponse;
 use moneymarket::market::{BorrowerInfoResponse, ExecuteMsg as MarketExecuteMsg};
 use moneymarket::oracle::PriceResponse;
 use moneymarket::overseer::{AllCollateralsResponse, BorrowLimitResponse, CollateralsResponse};
-use moneymarket::querier::{query_balance, query_price, TimeConstraints};
+use moneymarket::querier::{query_balance, query_price, TimeConstraints, deduct_tax};
 use moneymarket::tokens::{Tokens, TokensHuman, TokensMath, TokensToHuman, TokensToRaw};
+use cw20::Cw20HandleMsg;
+
 
 pub fn lock_collateral(
     deps: DepsMut,
@@ -168,7 +170,7 @@ pub fn liquidate_collateral(
 
     let market_contract = deps.api.human_address(&config.market_contract)?;
     let prev_balance: Uint256 =
-        query_balance(deps.as_ref(), market_contract.clone(), config.stable_denom)?;
+        query_balance(deps.as_ref(), market_contract.clone(), deps.api.human_address(&config.stable_addr)?)?;
 
     let mut liquidation_messages: Vec<CosmosMsg> = liquidation_amount
         .iter()

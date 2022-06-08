@@ -20,7 +20,7 @@ pub struct InstantiateMsg {
     pub collector_contract: HumanAddr,
     /// The base denomination used when fetching oracle price,
     /// reward distribution, and borrow
-    pub stable_denom: String,
+    pub stable_addr: HumanAddr,
     /// # of blocks per epoch period
     pub epoch_period: u64,
     /// Distribute interest buffer to market contract,
@@ -168,7 +168,7 @@ pub struct ConfigResponse {
     pub target_deposit_rate: Decimal256,
     pub buffer_distribution_factor: Decimal256,
     pub anc_purchase_factor: Decimal256,
-    pub stable_denom: String,
+    pub stable_addr: String,
     pub epoch_period: u64,
     pub price_timeframe: u64,
     pub dyn_rate_epoch: u64,

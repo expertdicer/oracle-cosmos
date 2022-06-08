@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::{CanonicalAddr, Deps, Order, StdError, StdResult, Storage};
+use cosmwasm_std::{CanonicalAddr, Deps, Order, StdError, StdResult, Storage, HumanAddr};
 use cosmwasm_storage::{Bucket, ReadonlyBucket, ReadonlySingleton, Singleton};
 
 use moneymarket::overseer::{CollateralsResponse, WhitelistResponseElem};
@@ -23,7 +23,7 @@ pub struct Config {
     pub market_contract: CanonicalAddr,
     pub liquidation_contract: CanonicalAddr,
     pub collector_contract: CanonicalAddr,
-    pub stable_denom: String,
+    pub stable_addr: CanonicalAddr,
     pub epoch_period: u64,
     pub threshold_deposit_rate: Decimal256,
     pub target_deposit_rate: Decimal256,

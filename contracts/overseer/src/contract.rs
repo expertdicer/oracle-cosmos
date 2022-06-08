@@ -31,6 +31,7 @@ use moneymarket::overseer::{
 };
 // use moneymarket::querier::{deduct_tax, query_balance};
 use moneymarket::querier::{deduct_tax, query_balance};
+use cw20::Cw20HandleMsg;
 
 pub const BLOCKS_PER_YEAR: u128 = 4656810;
 
@@ -49,7 +50,7 @@ pub fn init(
             market_contract: deps.api.canonical_address(&msg.market_contract)?,
             liquidation_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
             collector_contract: deps.api.canonical_address(&msg.collector_contract)?,
-            stable_denom: msg.stable_denom,
+            stable_addr: deps.api.canonical_address(&msg.stable_addr)?,
             epoch_period: msg.epoch_period,
             threshold_deposit_rate: msg.threshold_deposit_rate,
             target_deposit_rate: msg.target_deposit_rate,
@@ -113,7 +114,7 @@ pub fn migrate(
     let prev_yield_reserve = query_balance(
         deps.as_ref(),
         env.contract.address.clone(),
-        config.stable_denom.clone(),
+        deps.api.human_address(&config.stable_addr)?,
     )?;
     store_dynrate_state(
         deps.storage,
@@ -435,7 +436,7 @@ fn update_deposit_rate(deps: DepsMut, env: Env) -> StdResult<()> {
         let interest_buffer = query_balance(
             deps.as_ref(),
             env.contract.address.clone(),
-            config.stable_denom.to_string(),
+            deps.api.human_address(&config.stable_addr)?,
         )?;
         // convert block rate into yearly rate
         let blocks_per_year = Decimal256::from_ratio(Uint256::from(BLOCKS_PER_YEAR), 1);
@@ -537,23 +538,34 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
     let mut interest_buffer = query_balance(
         deps.as_ref(),
         env.contract.address.clone(),
-        config.stable_denom.to_string(),
+        deps.api.human_address(&config.stable_addr)?,
     )?;
 
     // Send accrued_buffer * config.anc_purchase_factor amount stable token to collector
     let accrued_buffer = interest_buffer - state.prev_interest_buffer;
     let anc_purchase_amount = accrued_buffer * config.anc_purchase_factor;
+    // if !anc_purchase_amount.is_zero() {
+    //     messages.push(CosmosMsg::Bank(BankMsg::Send {
+    //         from_address: env.contract.address.clone(),
+    //         to_address: deps.api.human_address(&config.collector_contract)?,
+    //         amount: vec![deduct_tax(
+    //             deps.as_ref(),
+    //             Coin {
+    //                 denom: config.stable_denom.to_string(),
+    //                 amount: anc_purchase_amount.into(),
+    //             },
+    //         )?],
+    //     }));
+    // }
+
     if !anc_purchase_amount.is_zero() {
-        messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address.clone(),
-            to_address: deps.api.human_address(&config.collector_contract)?,
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom.to_string(),
-                    amount: anc_purchase_amount.into(),
-                },
-            )?],
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: deps.api.human_address(&config.stable_addr)?,
+            send: vec![],
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: deps.api.human_address(&config.collector_contract)?,
+                amount: deduct_tax(deps.as_ref(), anc_purchase_amount.into())?,
+            })?,
         }));
     }
 
@@ -577,27 +589,48 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
         distributed_interest = std::cmp::min(missing_deposits, distribution_buffer);
         interest_buffer = interest_buffer - distributed_interest;
 
+        // if !distributed_interest.is_zero() {
+        //     // deduct tax
+        //     distributed_interest = Uint256::from(
+        //         deduct_tax(
+        //             deps.as_ref(),
+        //             Coin {
+        //                 denom: config.stable_denom.to_string(),
+        //                 amount: distributed_interest.into(),
+        //             },
+        //         )?
+        //         .amount,
+        //     );
+
+        //     // Send some portion of interest buffer to Market contract
+        //     messages.push(CosmosMsg::Bank(BankMsg::Send {
+        //         from_address: env.contract.address.clone(),
+        //         to_address: market_contract,
+        //         amount: vec![Coin {
+        //             denom: config.stable_denom,
+        //             amount: distributed_interest.into(),
+        //         }],
+        //     }));
+        // }
+
         if !distributed_interest.is_zero() {
             // deduct tax
             distributed_interest = Uint256::from(
                 deduct_tax(
                     deps.as_ref(),
-                    Coin {
-                        denom: config.stable_denom.to_string(),
-                        amount: distributed_interest.into(),
-                    },
+                    distributed_interest.into(), 
                 )?
-                .amount,
+                ,
             );
 
             // Send some portion of interest buffer to Market contract
-            messages.push(CosmosMsg::Bank(BankMsg::Send {
-                from_address: env.contract.address.clone(),
-                to_address: market_contract,
-                amount: vec![Coin {
-                    denom: config.stable_denom,
-                    amount: distributed_interest.into(),
-                }],
+            messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: deps.api.human_address(&config.stable_addr)?,
+                send: vec![],
+                msg: to_binary(&Cw20HandleMsg::Transfer {
+                    recipient: market_contract,
+                    amount:distributed_interest.into(),
+                })?,
             }));
         }
     }
@@ -792,7 +825,10 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .api
             .human_address(&config.collector_contract)?
             .to_string(),
-        stable_denom: config.stable_denom,
+        stable_addr: deps
+            .api
+            .human_address(&config.stable_addr)?
+            .to_string(),
         epoch_period: config.epoch_period,
         threshold_deposit_rate: config.threshold_deposit_rate,
         target_deposit_rate: config.target_deposit_rate,
