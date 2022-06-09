@@ -82,11 +82,11 @@ pub fn redeem_stable(
     let exchange_rate = compute_exchange_rate(deps.as_ref(), &config, &state, None)?;
     let redeem_amount = Uint256::from(burn_amount) * exchange_rate;
 
-    let query_target = HumanAddr(env.contract.address.to_string());
+    let query_target = env.contract.address;
     let current_balance = query_balance(
         deps.as_ref(),
         query_target,
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )?;
 
     // Assert redeem amount
@@ -109,7 +109,7 @@ pub fn redeem_stable(
                 })?,
             }),
             CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: HumanAddr(config.stable_addr.to_string()),
+                contract_addr: deps.api.human_address(&config.stable_addr)?,
                 msg: to_binary(&Cw20HandleMsg::Transfer {
                     recipient: sender,
                     amount: redeem_amount.into(),
@@ -147,7 +147,7 @@ pub(crate) fn compute_exchange_rate(
     let balance = query_balance(
         deps,
         deps.api.human_address(&config.contract_addr)?,
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )? - deposit_amount.unwrap_or_else(Uint256::zero);
 
     Ok(compute_exchange_rate_raw(state, aterra_supply, balance))

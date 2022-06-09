@@ -62,7 +62,7 @@ pub fn init(
         &Config {
             contract_addr: deps
                 .api
-                .canonical_address(&HumanAddr(env.contract.address.to_string()))?,
+                .canonical_address(&env.contract.address.clone())?,
             owner_addr: deps.api.canonical_address(&msg.owner_addr)?,
             aterra_contract: CanonicalAddr::from(vec![]),
             overseer_contract: CanonicalAddr::from(vec![]),
@@ -243,7 +243,7 @@ pub fn receive_cw20(
             let config: Config = read_config(deps.storage)?;
             if deps
                 .api
-                .canonical_address(&HumanAddr(contract_addr.to_string()))?
+                .canonical_address(&contract_addr)?
                 != config.aterra_contract
             {
                 return Err(ContractError::Unauthorized {});
@@ -255,7 +255,7 @@ pub fn receive_cw20(
             let config: Config = read_config(deps.storage)?;
             if deps
                 .api
-                .canonical_address(&HumanAddr(contract_addr.to_string()))?
+                .canonical_address(&contract_addr)?
                 != config.stable_addr
             {
                 return Err(ContractError::Unauthorized {});
@@ -267,7 +267,7 @@ pub fn receive_cw20(
             let config: Config = read_config(deps.storage)?;
             if deps
                 .api
-                .canonical_address(&HumanAddr(contract_addr.to_string()))?
+                .canonical_address(&contract_addr)?
                 != config.stable_addr
             {
                 return Err(ContractError::Unauthorized {});
