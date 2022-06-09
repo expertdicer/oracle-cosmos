@@ -543,7 +543,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
 
     // Send accrued_buffer * config.anc_purchase_factor amount stable token to collector
     let accrued_buffer = interest_buffer - state.prev_interest_buffer;
-    let anc_purchase_amount = accrued_buffer * config.anc_purchase_factor;
+    let anc_purchase_amount = accrued_buffer * config.anc_purchase_factor; // FIX CUNG NGUYEN NGU
     // if !anc_purchase_amount.is_zero() {
     //     messages.push(CosmosMsg::Bank(BankMsg::Send {
     //         from_address: env.contract.address.clone(),
@@ -557,7 +557,8 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
     //         )?],
     //     }));
     // }
-
+    
+    // FIX CUNG NGUYEN NGU
     if !anc_purchase_amount.is_zero() {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps.api.human_address(&config.stable_addr)?,

@@ -1,7 +1,7 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, to_binary, CosmosMsg, Deps, DepsMut, Env, HandleResponse, HumanAddr, MessageInfo,
-    StdResult, WasmMsg,
+    StdResult, WasmMsg, Uint128,
 };
 
 use crate::error::ContractError;
@@ -190,17 +190,18 @@ pub fn liquidate_collateral(
         .filter(|msg| msg.is_ok())
         .collect::<StdResult<Vec<CosmosMsg>>>()?;
     
-    let send_stable_msg = CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: HumanAddr(config.stable_addr.to_string()),
-        msg: to_binary(&Cw20HandleMsg::Transfer {   // fixme critical
-            recipient: market_contract,
-            amount: deduct_tax(
-                deps.as_ref(),
-                (amount - repay_amount).into(),
-            )?,
-        })?,
-        send: vec![],
-    });
+    // let send_stable_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+    //     contract_addr: HumanAddr(config.stable_addr.to_string()),
+    //     msg: to_binary(&Cw20HandleMsg::Transfer {   // fixme critical
+    //         recipient: market_contract,
+    //         amount: deduct_tax(
+    //             deps.as_ref(),
+    //             // (amount - repay_amount).into(),
+    //             Uint128::from(1u128),
+    //         )?,
+    //     })?,
+    //     send: vec![],
+    // }); //fixme
     let execute_msg = CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: market_contract,
         send: vec![],
@@ -263,17 +264,22 @@ pub(crate) fn compute_borrow_limit(
     for collateral in collaterals.iter() {
         let collateral_token = collateral.0.clone();
         let collateral_amount = collateral.1;
-
-        let price: PriceResponse = query_price(
-            deps,
-            oracle_contract.clone(),
-            (deps.api.human_address(&collateral_token)?).to_string(),
-            config.stable_denom.to_string(),
-            block_time.map(|block_time| TimeConstraints {
-                block_time,
-                valid_timeframe: config.price_timeframe,
-            }),
-        )?;
+        // FIX CUNG NGUYEN NGU PRICE 
+        // let price: PriceResponse = query_price(
+        //     deps,
+        //     oracle_contract.clone(),
+        //     (deps.api.human_address(&collateral_token)?).to_string(),
+        //     config.stable_denom.to_string(),
+        //     block_time.map(|block_time| TimeConstraints {
+        //         block_time,
+        //         valid_timeframe: config.price_timeframe,
+        //     }),
+        // )?;
+        let price = PriceResponse {
+            rate: Decimal256::one(),
+            last_updated_base: 1,
+            last_updated_quote: 1,
+        };
 
         let elem: WhitelistElem = read_whitelist_elem(deps.storage, &collateral.0)?;
         let collateral_value = collateral_amount * price.rate;
