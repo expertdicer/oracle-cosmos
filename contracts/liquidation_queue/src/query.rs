@@ -17,7 +17,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let resp = ConfigResponse {
         owner: deps.api.human_address(&config.owner)?.to_string(),
         oracle_contract: deps.api.human_address(&config.oracle_contract)?.to_string(),
-        stable_denom: config.stable_denom,
+        stable_addr: deps.api.human_address(&config.stable_addr)?.to_string(),
         safe_ratio: config.safe_ratio,
         bid_fee: config.bid_fee,
         liquidator_fee: config.liquidator_fee,
@@ -65,7 +65,7 @@ pub fn query_liquidation_amount(
     };
 
     // check tax cap
-    let (mut tax_rate, tax_cap) = query_tax_rate_and_cap(deps, config.stable_denom, HumanAddr(config.oraiswap_oracle.to_string()))?;
+    let (mut tax_rate, tax_cap) = query_tax_rate_and_cap(deps, HumanAddr(config.stable_addr.to_string()), HumanAddr(config.oraiswap_oracle.to_string()))?;
     let mut tax_cap_adj = tax_cap;
     if borrow_amount * tax_rate > tax_cap_adj {
         tax_rate = Decimal256::zero()

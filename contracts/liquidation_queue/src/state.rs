@@ -22,7 +22,7 @@ const DEFAULT_LIMIT: u8 = 10;
 pub struct Config {
     pub owner: CanonicalAddr,
     pub oracle_contract: CanonicalAddr,
-    pub stable_denom: String,
+    pub stable_addr: CanonicalAddr,
     pub safe_ratio: Decimal256,
     pub bid_fee: Decimal256,
     pub liquidator_fee: Decimal256,

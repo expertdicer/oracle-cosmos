@@ -11,7 +11,7 @@ use crate::tokens::TokensHuman;
 pub struct InstantiateMsg {
     pub owner: HumanAddr,
     pub oracle_contract: HumanAddr,
-    pub stable_denom: String,
+    pub stable_addr: HumanAddr,
     /// borrow_amount / borrow_limit must always be bigger than  
     /// safe_ratio.
     pub safe_ratio: Decimal256,
@@ -60,11 +60,6 @@ pub enum ExecuteMsg {
         bid_threshold: Option<Uint256>,
         max_slot: Option<u8>,
     },
-    /// Submit a new bid to a bid pool
-    SubmitBid {
-        collateral_token: HumanAddr,
-        premium_slot: u8,
-    },
     /// Withdraw a bid
     RetractBid {
         bid_idx: Uint128,
@@ -90,6 +85,11 @@ pub enum Cw20HookMsg {
         liquidator: HumanAddr, // Legacy parameter, ignored
         fee_address: Option<HumanAddr>,
         repay_address: Option<HumanAddr>,
+    },
+
+    SubmitBid {
+        collateral_token: HumanAddr,
+        premium_slot: u8,
     },
 }
 
@@ -130,7 +130,7 @@ pub enum QueryMsg {
 pub struct ConfigResponse {
     pub owner: String,
     pub oracle_contract: String,
-    pub stable_denom: String,
+    pub stable_addr: String,
     pub safe_ratio: Decimal256,
     pub bid_fee: Decimal256,
     pub liquidator_fee: Decimal256,

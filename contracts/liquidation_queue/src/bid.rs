@@ -9,7 +9,7 @@ use bigint::U256;
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, to_binary, BankMsg, CanonicalAddr, Coin, CosmosMsg, DepsMut, Env, MessageInfo, HandleResponse,
-    StdError, StdResult, Storage, Uint128, WasmMsg, HumanAddr,
+    StdError, StdResult, Storage, Uint128, WasmMsg, HumanAddr, Decimal,
 };
 use cw20::Cw20HandleMsg;
 use moneymarket::oracle::PriceResponse;
@@ -22,34 +22,13 @@ pub fn submit_bid(
     info: MessageInfo,
     collateral_token: HumanAddr,
     premium_slot: u8,
+    amount: Uint256,
 ) -> StdResult<HandleResponse> {
     let config: Config = read_config(deps.storage)?;
     let collateral_token_raw: CanonicalAddr = deps.api.canonical_address(&collateral_token)?;
     let collateral_info: CollateralInfo =
         read_collateral_info(deps.storage, &collateral_token_raw)?;
     let bidder_raw = deps.api.canonical_address(&info.sender)?;
-
-    let amount: Uint256 = info
-        .sent_funds
-        .iter()
-        .map(|item| {
-            if item.denom != config.stable_denom {
-                Err(StdError::generic_err(format!(
-                    "Invalid asset provided, only {} allowed",
-                    config.stable_denom
-                )))
-            } else {
-                Ok(item.amount)
-            }
-        })
-        .last()
-        .ok_or_else(|| {
-            StdError::generic_err(format!(
-                "No {} assets have been provided",
-                config.stable_denom
-            ))
-        })??
-        .into();
 
     // read or create bid_pool, make sure slot is valid
     let mut bid_pool: BidPool =
@@ -275,16 +254,13 @@ pub fn retract_bid(
 
     let mut messages: Vec<CosmosMsg> = vec![];
     if !withdraw_amount.is_zero() {
-        messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address,
-            to_address: info.sender,
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom,
-                    amount: withdraw_amount.into(),
-                },
-            )?],
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            msg:  to_binary(&Cw20HandleMsg::Transfer {
+                recipient: info.sender,
+                amount: deduct_tax(deps.as_ref(), withdraw_amount.into())?,
+            })? ,
+            send: vec![],
         }));
     }
 
@@ -335,16 +311,21 @@ pub fn execute_liquidation(
     }
 
     let oracle_contract = deps.api.human_address(&config.oracle_contract)?;
-    let price: PriceResponse = query_price(
-        deps.as_ref(),
-        oracle_contract,
-        collateral_token.to_string(),
-        config.stable_denom.clone(),
-        Some(TimeConstraints {
-            block_time: env.block.time,  //fixme
-            valid_timeframe: config.price_timeframe,
-        }),
-    )?;
+    // let price: PriceResponse = query_price(
+    //     deps.as_ref(),
+    //     oracle_contract,
+    //     collateral_token.to_string(),
+    //     config.stable_addr.clone(),
+    //     Some(TimeConstraints {
+    //         block_time: env.block.time,  //fixme
+    //         valid_timeframe: config.price_timeframe,
+    //     }),
+    // )?;
+    let price: PriceResponse = PriceResponse {
+        rate: Decimal256::from(Decimal::one()),
+        last_updated_base: 1u64,
+        last_updated_quote: 1u64,
+    };
 
     let mut remaining_collateral_to_liquidate = amount;
     let mut repay_amount = Uint256::zero();
@@ -397,49 +378,41 @@ pub fn execute_liquidation(
     let liquidator_fee = repay_amount * config.liquidator_fee;
     let repay_amount = repay_amount - bid_fee - liquidator_fee;
 
-    let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Bank(BankMsg::Send {
-        from_address: env.contract.address.clone(),
-        to_address: repay_address,
-        amount: vec![deduct_tax(
-            deps.as_ref(),
-            Coin {
-                denom: config.stable_denom.clone(),
-                amount: repay_amount.into(),
-            },
-        )?],
+    
+    let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: HumanAddr(config.stable_addr.to_string()),
+        msg:  to_binary(&Cw20HandleMsg::Transfer {
+            recipient: repay_address,
+            amount: deduct_tax(deps.as_ref(), repay_amount.into())?,
+        })? ,
+        send: vec![],
     })];
 
     if !bid_fee.is_zero() {
-        messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address.clone(),
-            to_address: fee_address,
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom.clone(),
-                    amount: bid_fee.into(),
-                },
-            )?],
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: fee_address,
+                amount: deduct_tax(deps.as_ref(), bid_fee.into())?,
+            })?,
+            send: vec![],
         }));
     }
     if !liquidator_fee.is_zero() {
-        messages.push(CosmosMsg::Bank(BankMsg::Send {
-            from_address: env.contract.address,
-            to_address: liquidator,
-            amount: vec![deduct_tax(
-                deps.as_ref(),
-                Coin {
-                    denom: config.stable_denom.clone(),
-                    amount: liquidator_fee.into(),
-                },
-            )?],
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: HumanAddr(config.stable_addr.to_string()), 
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: liquidator,
+                amount: deduct_tax(deps.as_ref(), liquidator_fee.into())?,
+            })?,
+            send: vec![],
         }));
     }
 
     let res = HandleResponse {
         attributes: vec![
             attr("action", "execute_bid"),
-            attr("stable_denom", config.stable_denom),
+            attr("stable_denom", config.stable_addr),
             attr("repay_amount", repay_amount),
             attr("bid_fee", bid_fee),
             attr("liquidator_fee", liquidator_fee),

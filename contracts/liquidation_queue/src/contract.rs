@@ -34,7 +34,7 @@ pub fn init(
         &Config {
             owner: deps.api.canonical_address(&msg.owner)?,
             oracle_contract: deps.api.canonical_address(&msg.oracle_contract)?,
-            stable_denom: msg.stable_denom,
+            stable_addr: deps.api.canonical_address(&msg.stable_addr)?,
             safe_ratio: msg.safe_ratio,
             bid_fee: msg.bid_fee,
             liquidator_fee: msg.liquidator_fee,
@@ -94,10 +94,6 @@ pub fn handle(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> St
             bid_threshold,
             max_slot,
         } => update_collateral_info(deps, info, collateral_token, bid_threshold, max_slot),
-        ExecuteMsg::SubmitBid {
-            collateral_token,
-            premium_slot,
-        } => submit_bid(deps, env, info, collateral_token, premium_slot),
         ExecuteMsg::ActivateBids {
             collateral_token,
             bids_idx,
@@ -116,7 +112,7 @@ pub fn receive_cw20(
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
 ) -> StdResult<HandleResponse> {
-    let contract_addr = info.sender;
+    let contract_addr = info.sender.clone();
     match from_binary(&cw20_msg.msg.as_ref().unwrap())? {
         Cw20HookMsg::ExecuteBid {
             liquidator,
@@ -137,6 +133,9 @@ pub fn receive_cw20(
                 collateral_token,
                 cw20_msg.amount.into(),
             )
+        }
+        Cw20HookMsg::SubmitBid {collateral_token, premium_slot} => {
+            submit_bid(deps, env, info, collateral_token, premium_slot, cw20_msg.amount.into())
         }
     }
 }

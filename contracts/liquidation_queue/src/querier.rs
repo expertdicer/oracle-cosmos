@@ -1,4 +1,4 @@
-use cosmwasm_std::{to_binary, QuerierWrapper, QueryRequest, StdResult, WasmQuery, HumanAddr, Deps};
+use cosmwasm_std::{to_binary, QuerierWrapper, QueryRequest, StdResult, WasmQuery, HumanAddr, Deps, Uint128};
 use moneymarket::overseer::{
     QueryMsg as OverseerQueryMsg, WhitelistResponse, WhitelistResponseElem,
 };
@@ -23,9 +23,10 @@ pub fn query_collateral_whitelist_info(
     Ok(whitelist_res.elems[0].clone())
 }
 
-pub fn query_tax_rate_and_cap(deps: Deps, denom: String, orai_oracle: HumanAddr) -> StdResult<(Decimal256, Uint256)> {
+pub fn query_tax_rate_and_cap(deps: Deps, denom: HumanAddr, orai_oracle: HumanAddr) -> StdResult<(Decimal256, Uint256)> {
     let orai_querier = OracleContract(orai_oracle);
     let rate = orai_querier.query_tax_rate(&deps.querier)?.rate;
-    let cap = orai_querier.query_tax_cap(&deps.querier,denom)?.cap;
+    // let cap = orai_querier.query_tax_cap(&deps.querier,denom)?.cap;
+    let cap = Uint128::from(u128::MAX);
     Ok((rate.into(), cap.into()))
 }
