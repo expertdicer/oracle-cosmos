@@ -1,9 +1,9 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
-    to_binary, AllBalanceResponse, BalanceResponse, BankQuery, Coin, Deps, HumanAddr, QueryRequest,
+    to_binary, AllBalanceResponse, BankQuery, Coin, Deps, HumanAddr, QueryRequest,
     StdError, StdResult, Uint128, WasmQuery,
 };
-use cw20::{Cw20QueryMsg, TokenInfoResponse};
+use cw20::{Cw20QueryMsg, TokenInfoResponse, BalanceResponse};
 use oraiswap::oracle::OracleContract;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ pub fn query_balance(
             address: account_addr,
         })?,
     }))?;
-    Ok(balance.amount.amount.into())
+    Ok(balance.balance.into())
 }
 
 pub fn query_token_balance(
