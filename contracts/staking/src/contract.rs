@@ -61,8 +61,8 @@ pub fn handle(
             orchai_token,
         ),
         ExecuteMsg::StakingOrai { amount } => staking_orai(deps, _env, info, amount),
-        ExecuteMsg::ClaimReward {} => handle_claim_reward(deps, _env, info),
-        ExecuteMsg::WithdrawPoSReward {} => withdraw_pos_reward(deps, _env, info),
+        ExecuteMsg::ClaimOrchaiReward {} => handle_claim_reward(deps, _env, info),
+        ExecuteMsg::ClaimRewards { recipient } => withdraw_pos_reward(deps, _env, info, recipient),
     }
 }
 
@@ -224,19 +224,24 @@ pub fn withdraw_pos_reward(
     deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
+    recipient: Option<HumanAddr>,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
     let mut messages: Vec<CosmosMsg> = vec![];
+    let mut recipient_raw = _info.sender.clone();
+    if let Some(recipient) = recipient {
+        recipient_raw = recipient;
+    }
     messages.push(CosmosMsg::Staking(StakingMsg::Withdraw {
         validator: config.validator_to_delegate.clone(),
-        recipient: Some(_info.sender.clone()),
+        recipient: Some(recipient_raw.clone()),
     }));
 
     let res = HandleResponse {
         attributes: vec![
             attr("action", "withdraw"),
             attr("validator", config.validator_to_delegate),
-            attr("recipient", _info.sender),
+            attr("recipient", recipient_raw),
         ],
         messages: messages,
         data: None,

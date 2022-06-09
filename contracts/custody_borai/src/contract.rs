@@ -1,15 +1,15 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, HumanAddr, Binary, Deps, DepsMut, Env, MessageInfo, HandleResponse, 
-    InitResponse, MigrateResponse, StdResult,
+    attr, from_binary, to_binary, Binary, Deps, DepsMut, Env, HandleResponse, HumanAddr,
+    InitResponse, MessageInfo, MigrateResponse, StdResult,
 };
 
 use crate::collateral::{
     deposit_collateral, liquidate_collateral, lock_collateral, query_borrower, query_borrowers,
     unlock_collateral, withdraw_collateral,
 };
-use crate::distribution::{distribute_rewards, distribute_hook, swap_to_stable_denom};
+use crate::distribution::{distribute_hook, distribute_rewards, swap_to_stable_denom};
 use crate::error::ContractError;
 use crate::state::{read_config, store_config, Config};
 
@@ -57,14 +57,7 @@ pub fn handle(
         ExecuteMsg::UpdateConfig {
             owner,
             liquidation_contract,
-        } => {
-            update_config(
-                deps,
-                info,
-                owner,
-                liquidation_contract,
-            )
-        }
+        } => update_config(deps, info, owner, liquidation_contract),
         ExecuteMsg::LockCollateral { borrower, amount } => {
             lock_collateral(deps, info, borrower, amount)
         }
@@ -79,9 +72,7 @@ pub fn handle(
             liquidator,
             borrower,
             amount,
-        } => {
-            liquidate_collateral(deps, info, liquidator, borrower, amount)
-        }
+        } => liquidate_collateral(deps, info, liquidator, borrower, amount),
     }
 }
 
@@ -96,7 +87,11 @@ pub fn receive_cw20(
         Ok(Cw20HookMsg::DepositCollateral {}) => {
             // only asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
-            if deps.api.canonical_address(&HumanAddr(contract_addr.to_string()))? != config.collateral_token {
+            if deps
+                .api
+                .canonical_address(&HumanAddr(contract_addr.to_string()))?
+                != config.collateral_token
+            {
                 return Err(ContractError::Unauthorized {});
             }
 
@@ -130,9 +125,7 @@ pub fn update_config(
     store_config(deps.storage, &config)?;
 
     let res = HandleResponse {
-        attributes: vec![
-            attr("action", "update_config")
-        ],
+        attributes: vec![attr("action", "update_config")],
         messages: vec![],
         data: None,
     };
@@ -143,14 +136,10 @@ pub fn update_config(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Config {} => to_binary(&query_config(deps)?),
-        QueryMsg::Borrower { address } => {
-            to_binary(&query_borrower(deps, address)?)
+        QueryMsg::Borrower { address } => to_binary(&query_borrower(deps, address)?),
+        QueryMsg::Borrowers { start_after, limit } => {
+            to_binary(&query_borrowers(deps, start_after, limit)?)
         }
-        QueryMsg::Borrowers { start_after, limit } => to_binary(&query_borrowers(
-            deps,
-            start_after,
-            limit,
-        )?),
     }
 }
 
@@ -178,6 +167,11 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(_deps: DepsMut, _env: Env, _info: MessageInfo, _msg: MigrateMsg) -> StdResult<MigrateResponse> {
+pub fn migrate(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    _msg: MigrateMsg,
+) -> StdResult<MigrateResponse> {
     Ok(MigrateResponse::default())
 }

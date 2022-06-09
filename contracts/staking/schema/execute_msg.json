@@ -87,11 +87,34 @@
     {
       "type": "object",
       "required": [
-        "claim_reward"
+        "claim_orchai_reward"
       ],
       "properties": {
-        "claim_reward": {
+        "claim_orchai_reward": {
           "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "claim_rewards"
+      ],
+      "properties": {
+        "claim_rewards": {
+          "type": "object",
+          "properties": {
+            "recipient": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
         }
       }
     }

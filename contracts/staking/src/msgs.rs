@@ -34,8 +34,10 @@ pub enum ExecuteMsg {
     StakingOrai {
         amount: Uint256,
     },
-    ClaimReward {},
-    WithdrawPoSReward {},
+    ClaimOrchaiReward {},
+    ClaimRewards {
+        recipient: Option<HumanAddr>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
