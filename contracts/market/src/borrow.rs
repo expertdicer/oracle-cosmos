@@ -17,6 +17,8 @@ use crate::state::{
 };
 use cw20::Cw20HandleMsg;
 use moneymarket::querier::{deduct_tax, query_balance, query_supply};
+
+pub const BLOCKS_PER_YEAR: u64 = 6300000;
 pub fn borrow_stable(
     deps: DepsMut,
     env: Env,
@@ -247,7 +249,7 @@ pub fn compute_interest(
     let balance: Uint256 = query_balance(
         deps,
         deps.api.human_address(&config.contract_addr)?,
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )? - deposit_amount.unwrap_or_else(Uint256::zero);
 
     let borrow_rate_res: BorrowRateResponse = query_borrow_rate(
@@ -258,8 +260,9 @@ pub fn compute_interest(
         state.total_reserves,
     )?;
 
-    let target_deposit_rate: Decimal256 =
-        query_target_deposit_rate(deps, deps.api.human_address(&config.overseer_contract)?)?;
+    let target_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100u64);
+    // let target_deposit_rate: Decimal256 =
+    //     query_target_deposit_rate(deps, deps.api.human_address(&config.overseer_contract)?)?;
 
     compute_interest_raw(
         state,

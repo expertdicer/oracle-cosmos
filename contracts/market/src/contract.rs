@@ -530,10 +530,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .api
             .human_address(&config.distributor_contract)?
             .to_string(),
-        stable_addr: deps
-            .api
-            .human_address(&config.stable_addr)?
-            .to_string(),
+        stable_addr: deps.api.human_address(&config.stable_addr)?.to_string(),
         max_borrow_factor: config.max_borrow_factor,
     })
 }
