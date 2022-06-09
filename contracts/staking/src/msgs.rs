@@ -35,6 +35,7 @@ pub enum ExecuteMsg {
         amount: Uint256,
     },
     ClaimReward {},
+    WithdrawPoSReward {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
