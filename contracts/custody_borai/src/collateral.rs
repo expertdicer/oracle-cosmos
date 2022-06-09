@@ -6,8 +6,8 @@ use crate::state::{
 
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
-    attr, to_binary, HumanAddr, CanonicalAddr, CosmosMsg, Deps, DepsMut, MessageInfo, HandleResponse,
-    StdResult, WasmMsg,
+    attr, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, HandleResponse, HumanAddr,
+    MessageInfo, StdResult, WasmMsg,
 };
 use cw20::Cw20HandleMsg;
 use moneymarket::custody::{BorrowerResponse, BorrowersResponse};
@@ -29,14 +29,14 @@ pub fn deposit_collateral(
 
     store_borrower_info(deps.storage, &borrower_raw, &borrower_info)?;
 
-    Ok( HandleResponse { 
+    Ok(HandleResponse {
         attributes: vec![
             attr("action", "deposit_collateral"),
             attr("borrower", borrower.as_str()),
             attr("amount", amount.to_string()),
         ],
         messages: vec![],
-        data:None,
+        data: None,
     })
 }
 
@@ -77,18 +77,14 @@ pub fn withdraw_collateral(
             attr("borrower", borrower.as_str()),
             attr("amount", amount.to_string()),
         ],
-        messages: vec![
-            CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: deps
-                    .api
-                    .human_address(&config.collateral_token)?,
-                send: vec![],
-                msg: to_binary(&Cw20HandleMsg::Transfer {
-                    recipient: borrower,
-                    amount: amount.into(),
-                })?,
-            }),
-        ],
+        messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: deps.api.human_address(&config.collateral_token)?,
+            send: vec![],
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: borrower,
+                amount: amount.into(),
+            })?,
+        })],
         data: None,
     };
     Ok(res)
@@ -200,30 +196,25 @@ pub fn liquidate_collateral(
             attr("borrower", borrower),
             attr("amount", amount),
         ],
-        messages: vec![
-            CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: deps
-                    .api
-                    .human_address(&config.collateral_token)?,
-                send: vec![],
-                msg: to_binary(&Cw20HandleMsg::Send {
-                    contract: deps
-                        .api
-                        .human_address(&config.liquidation_contract)?,
-                    amount: amount.into(),
-                    msg: Some(to_binary(&LiquidationCw20HookMsg::ExecuteBid {
-                        liquidator: liquidator.to_string(),
-                        fee_address: Some(
-                            deps.api
-                                .human_address(&config.overseer_contract)?.to_string(),
-                        ),
-                        repay_address: Some(
-                            deps.api.human_address(&config.market_contract)?.to_string(),
-                        ),
-                    })?),
-                })?,
-            }),
-        ],
+        messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: deps.api.human_address(&config.collateral_token)?,
+            send: vec![],
+            msg: to_binary(&Cw20HandleMsg::Send {
+                contract: deps.api.human_address(&config.liquidation_contract)?,
+                amount: amount.into(),
+                msg: Some(to_binary(&LiquidationCw20HookMsg::ExecuteBid {
+                    liquidator: liquidator.to_string(),
+                    fee_address: Some(
+                        deps.api
+                            .human_address(&config.overseer_contract)?
+                            .to_string(),
+                    ),
+                    repay_address: Some(
+                        deps.api.human_address(&config.market_contract)?.to_string(),
+                    ),
+                })?),
+            })?,
+        })],
         data: None,
     };
     Ok(res)
