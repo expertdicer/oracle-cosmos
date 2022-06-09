@@ -17,7 +17,7 @@
     "oracle_contract",
     "owner_addr",
     "price_timeframe",
-    "stable_denom",
+    "stable_addr",
     "target_deposit_rate",
     "threshold_deposit_rate"
   ],
@@ -123,9 +123,13 @@
       "format": "uint64",
       "minimum": 0.0
     },
-    "stable_denom": {
+    "stable_addr": {
       "description": "The base denomination used when fetching oracle price, reward distribution, and borrow",
-      "type": "string"
+      "allOf": [
+        {
+          "$ref": "#/definitions/HumanAddr"
+        }
+      ]
     },
     "target_deposit_rate": {
       "description": "Target deposit rate. When current deposit rate is bigger than this, Custody contracts send rewards to interest buffer",

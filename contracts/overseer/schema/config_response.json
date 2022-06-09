@@ -17,7 +17,7 @@
     "oracle_contract",
     "owner_addr",
     "price_timeframe",
-    "stable_denom",
+    "stable_addr",
     "target_deposit_rate",
     "threshold_deposit_rate"
   ],
@@ -70,7 +70,7 @@
       "format": "uint64",
       "minimum": 0.0
     },
-    "stable_denom": {
+    "stable_addr": {
       "type": "string"
     },
     "target_deposit_rate": {
