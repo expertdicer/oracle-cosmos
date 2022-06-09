@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::Uint256;
-use cosmwasm_std::{HumanAddr};
+use cosmwasm_std::HumanAddr;
 use cw20::Cw20ReceiveMsg;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -44,9 +44,15 @@ pub enum ExecuteMsg {
         liquidation_contract: Option<HumanAddr>,
     },
     /// Make specified amount of tokens unspendable
-    LockCollateral { borrower: HumanAddr, amount: Uint256 },
+    LockCollateral {
+        borrower: HumanAddr,
+        amount: Uint256,
+    },
     /// Make specified amount of collateral tokens spendable
-    UnlockCollateral { borrower: HumanAddr, amount: Uint256 },
+    UnlockCollateral {
+        borrower: HumanAddr,
+        amount: Uint256,
+    },
     /// Claim bAsset rewards and distribute claimed rewards
     /// to market and overseer contracts
     DistributeRewards {},
@@ -65,7 +71,9 @@ pub enum ExecuteMsg {
     /// Withdraw spendable collateral token.
     /// If the amount is not given,
     /// return all spendable collateral
-    WithdrawCollateral { amount: Option<Uint256> },
+    WithdrawCollateral {
+        amount: Option<Uint256>,
+    },
 
     SwapToStableDenom {},
 

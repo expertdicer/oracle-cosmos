@@ -1,5 +1,6 @@
 pub mod common;
 pub mod custody;
+pub mod dex;
 pub mod distribution_model;
 pub mod interest_model;
 pub mod liquidation;
@@ -9,4 +10,3 @@ pub mod oracle;
 pub mod overseer;
 pub mod querier;
 pub mod tokens;
-pub mod dex;
