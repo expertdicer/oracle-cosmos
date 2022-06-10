@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::HumanAddr;
+use cosmwasm_std::{Coin, HumanAddr};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
@@ -41,6 +41,9 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     Config {},
     DepositRate {},
+    TotalBallanceDeposit { user: HumanAddr },
+    CollateralBalance { user: HumanAddr },
+    BorrowerInfo { borrower: HumanAddr },
 }
 
 // We define a custom struct for each query response
@@ -63,4 +66,35 @@ pub struct ConfigResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct DepositRateResponse {
     pub deposit_rate: Decimal256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct TotalBallanceDepositResponse {
+    pub total_ballance: Uint256,
+    pub ausdt_ballance: Uint256,
+    pub exchange_rate: Decimal256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct CollateralBallanceResponse {
+    pub borrower: String,
+    pub balance: Uint256,
+    pub spendable: Uint256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct BorrowerInfoResponse {
+    pub borrower: String,
+    pub interest_index: Decimal256,
+    pub reward_index: Decimal256,
+    pub loan_amount: Uint256,
+    pub pending_rewards: Decimal256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct OraiBalanceResponse {
+    /// Always returns a Coin with the requested denom.
+    /// This may be of 0 amount if no such funds.
+    pub amount: Coin,
 }
