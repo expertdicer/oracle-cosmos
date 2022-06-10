@@ -44,6 +44,7 @@ pub enum QueryMsg {
     TotalBallanceDeposit { user: HumanAddr },
     CollateralBalance { user: HumanAddr },
     BorrowerInfo { borrower: HumanAddr },
+    OraiBallance { user: HumanAddr },
 }
 
 // We define a custom struct for each query response

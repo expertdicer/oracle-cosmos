@@ -152,6 +152,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::BorrowerInfo { borrower } => {
             to_binary(&query_borrower_info(deps, _env, borrower)?)
         }
+        QueryMsg::OraiBallance { user } => to_binary(&query_orai_ballance(deps, _env, user)?),
     }
 }
 

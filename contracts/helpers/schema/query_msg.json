@@ -80,6 +80,25 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "orai_ballance"
+      ],
+      "properties": {
+        "orai_ballance": {
+          "type": "object",
+          "required": [
+            "user"
+          ],
+          "properties": {
+            "user": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {
