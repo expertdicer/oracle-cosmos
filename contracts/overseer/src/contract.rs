@@ -649,7 +649,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
     // TODO: Should this become a reply? If so which SubMsg to make reply_on?
     // Execute store epoch state operation
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: HumanAddr(env.contract.address.to_string()),
+        contract_addr: env.contract.address,
         send: vec![],
         msg: to_binary(&ExecuteMsg::UpdateEpochState {
             interest_buffer,
@@ -741,7 +741,7 @@ pub fn update_epoch_state(
             attr("interest_buffer", interest_buffer),
         ],
         messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(market_contract.to_string()),
+            contract_addr: market_contract,
             send: vec![],
             msg: response_msg,
         })],

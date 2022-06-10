@@ -392,7 +392,7 @@ pub fn execute_epoch_operations(
     if config.overseer_contract
         != deps
             .api
-            .canonical_address(&HumanAddr(info.sender.to_string()))?
+            .canonical_address(&info.sender)?
     {
         return Err(ContractError::Unauthorized {});
     }
@@ -407,7 +407,7 @@ pub fn execute_epoch_operations(
     let balance: Uint256 = query_balance(
         deps.as_ref(),
         deps.api.human_address(&config.contract_addr)?,
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )? - distributed_interest;
 
     let borrow_rate_res: BorrowRateResponse = query_borrow_rate(
@@ -441,7 +441,7 @@ pub fn execute_epoch_operations(
         state.total_reserves = state.total_reserves - Decimal256::from_uint256(total_reserves);
 
         vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            contract_addr: deps.api.human_address(&config.stable_addr)?,
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: deps.api.human_address(&config.collector_contract)?,
                 amount: deduct_tax(deps.as_ref(), total_reserves.into())?,
