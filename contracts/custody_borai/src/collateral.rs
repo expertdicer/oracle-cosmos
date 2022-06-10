@@ -1,4 +1,5 @@
 use crate::error::ContractError;
+use crate::external::handle::{RewardContractExecuteMsg, RewardContractQueryMsg};
 use crate::state::{
     read_borrower_info, read_borrowers, read_config, remove_borrower_info, store_borrower_info,
     BorrowerInfo, Config,
@@ -6,7 +7,7 @@ use crate::state::{
 
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
-    attr, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, HandleResponse, HumanAddr,
+    attr, to_binary, CanonicalAddr, CosmosMsg, Deps, DepsMut, Env, HandleResponse, HumanAddr,
     MessageInfo, StdResult, WasmMsg,
 };
 use cw20::Cw20HandleMsg;
@@ -17,9 +18,11 @@ use moneymarket::liquidation::Cw20HookMsg as LiquidationCw20HookMsg;
 /// Executor: bAsset token contract
 pub fn deposit_collateral(
     deps: DepsMut,
+    env: Env,
     borrower: HumanAddr,
     amount: Uint256,
 ) -> Result<HandleResponse, ContractError> {
+    let config: Config = read_config(deps.storage)?;
     let borrower_raw = deps.api.canonical_address(&borrower)?;
     let mut borrower_info: BorrowerInfo = read_borrower_info(deps.storage, &borrower_raw);
 
@@ -29,15 +32,30 @@ pub fn deposit_collateral(
 
     store_borrower_info(deps.storage, &borrower_raw, &borrower_info)?;
 
-    Ok(HandleResponse {
+    let res = HandleResponse {
         attributes: vec![
             attr("action", "deposit_collateral"),
             attr("borrower", borrower.as_str()),
             attr("amount", amount.to_string()),
         ],
-        messages: vec![],
+        messages: vec![
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: deps.api.human_address(&config.reward_contract)?,
+                send: vec![],
+                msg: to_binary(&RewardContractExecuteMsg::UpdateUserReward { user: borrower })?,
+            }),
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: deps.api.human_address(&config.reward_contract)?,
+                send: vec![],
+                msg: to_binary(&RewardContractExecuteMsg::UpdateUserReward {
+                    user: env.contract.address.clone(),
+                })?,
+            }),
+        ],
         data: None,
-    })
+    };
+
+    Ok(res)
 }
 
 /// Withdraw spendable collateral or a specified amount of collateral
