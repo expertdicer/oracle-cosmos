@@ -3,14 +3,15 @@ use crate::state::{read_config, store_config, Config};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
-use crate::external::query::EpochState;
+use crate::external::query::{EpochStateResponse, QueryEpochState};
 use crate::msgs::{ConfigResponse, DepositRateResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_bignumber::Uint256;
 use cosmwasm_std::{
     to_binary, Binary, Deps, DepsMut, Env, HandleResponse, HumanAddr, InitResponse, MessageInfo,
-    StdResult,
+    QueryRequest, StdResult, WasmQuery,
 };
+use cw20::Cw20QueryMsg;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -158,4 +159,18 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     Ok(resp)
 }
 
-fn query_deposit_rate(deps: Deps, env: Env) -> StdResult<DepositRateResponse> {}
+fn query_deposit_rate(deps: Deps, env: Env) -> StdResult<DepositRateResponse> {
+    let config = read_config(deps.storage)?;
+    let epochstate: EpochStateResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: config.market_contract,
+            msg: to_binary(&QueryEpochState {
+                block_height: env.block.height,
+                distributed_interest: Uint256::zero(),
+            })?,
+        }))?;
+
+    Ok(DepositRateResponse {
+        deposit_rate: epochstate.exchange_rate,
+    })
+}
