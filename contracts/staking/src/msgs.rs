@@ -34,9 +34,11 @@ pub enum ExecuteMsg {
     StakingOrai {
         amount: Uint256,
     },
-    ClaimOrchaiReward {},
     ClaimRewards {
         recipient: Option<HumanAddr>,
+    },
+    UpdateUserReward {
+        user: HumanAddr,
     },
 }
 

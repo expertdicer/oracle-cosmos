@@ -389,11 +389,7 @@ pub fn execute_epoch_operations(
     distributed_interest: Uint256,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    if config.overseer_contract
-        != deps
-            .api
-            .canonical_address(&info.sender)?
-    {
+    if config.overseer_contract != deps.api.canonical_address(&info.sender)? {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -481,12 +477,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::BorrowerInfo {
             borrower,
             block_height,
-        } => to_binary(&query_borrower_info(
-            deps,
-            env,
-            borrower,
-            block_height,
-        )?),
+        } => to_binary(&query_borrower_info(deps, env, borrower, block_height)?),
         QueryMsg::BorrowerInfos { start_after, limit } => {
             to_binary(&query_borrower_infos(deps, start_after, limit)?)
         }

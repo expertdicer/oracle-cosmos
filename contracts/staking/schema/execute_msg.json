@@ -87,17 +87,6 @@
     {
       "type": "object",
       "required": [
-        "claim_orchai_reward"
-      ],
-      "properties": {
-        "claim_orchai_reward": {
-          "type": "object"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
         "claim_rewards"
       ],
       "properties": {
@@ -113,6 +102,25 @@
                   "type": "null"
                 }
               ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_user_reward"
+      ],
+      "properties": {
+        "update_user_reward": {
+          "type": "object",
+          "required": [
+            "user"
+          ],
+          "properties": {
+            "user": {
+              "$ref": "#/definitions/HumanAddr"
             }
           }
         }
