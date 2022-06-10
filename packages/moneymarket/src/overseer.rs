@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::tokens::TokensHuman;
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::HumanAddr;
+use cosmwasm_std::{HumanAddr, CanonicalAddr};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -185,8 +185,8 @@ pub struct WhitelistResponseElem {
     pub name: String,
     pub symbol: String,
     pub max_ltv: Decimal256,
-    pub custody_contract: String,
-    pub collateral_token: String,
+    pub custody_contract: HumanAddr,
+    pub collateral_token: HumanAddr,
 }
 
 // We define a custom struct for each query response

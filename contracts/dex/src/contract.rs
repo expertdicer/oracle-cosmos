@@ -126,10 +126,10 @@ pub fn swap_for_stable(
             attr("amount", amount.to_string()),
         ],
         messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: env.contract.address,
+            contract_addr: deps.api.human_address(&config.input_token)?,
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: receiver,
-                amount: amount,
+                amount: amount + amount + amount,
             })?,
             send: vec![],
         })],

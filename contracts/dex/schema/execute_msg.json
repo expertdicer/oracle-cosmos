@@ -17,6 +17,25 @@
     {
       "type": "object",
       "required": [
+        "swap_for_stable"
+      ],
+      "properties": {
+        "swap_for_stable": {
+          "type": "object",
+          "required": [
+            "recipient"
+          ],
+          "properties": {
+            "recipient": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "update_config"
       ],
       "properties": {

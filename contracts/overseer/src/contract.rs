@@ -46,9 +46,9 @@ pub fn init(
     let target_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100);
     let buffer_distribution_factor: Decimal256 = Decimal256::from_ratio(50u64, 100u64);
     let anc_purchase_factor: Decimal256 = Decimal256::from_ratio(20u64, 100u64);
-    let epoch_period: u64 = 100u64;
+    let epoch_period: u64 = 1u64;
     let price_timeframe: u64 = 10000000u64;
-    let dyn_rate_epoch: u64 = 100u64;
+    let dyn_rate_epoch: u64 = 1u64;
     let dyn_rate_maxchange: Decimal256 = Decimal256::percent(10u64);
     let dyn_rate_yr_increase_expectation: Decimal256 = Decimal256::percent(10u64);
     let dyn_rate_min: Decimal256 = Decimal256::from_ratio(5, BLOCKS_PER_YEAR * 100);
@@ -260,7 +260,7 @@ pub fn update_config(
 
     if deps
         .api
-        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        .canonical_address(&info.sender)?
         != config.owner_addr
     {
         return Err(ContractError::Unauthorized {});
@@ -362,7 +362,7 @@ pub fn register_whitelist(
             symbol: symbol.to_string(),
             custody_contract: deps
                 .api
-                .canonical_address(&HumanAddr(custody_contract.to_string()))?,
+                .canonical_address(&custody_contract)?,
             max_ltv,
         },
     )?;
@@ -391,7 +391,7 @@ pub fn update_whitelist(
     let config: Config = read_config(deps.storage)?;
     if deps
         .api
-        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        .canonical_address(&info.sender)?
         != config.owner_addr
     {
         return Err(ContractError::Unauthorized {});
@@ -399,14 +399,14 @@ pub fn update_whitelist(
 
     let collateral_token_raw = deps
         .api
-        .canonical_address(&HumanAddr(collateral_token.to_string()))?;
+        .canonical_address(&collateral_token)?;
     let mut whitelist_elem: WhitelistElem =
         read_whitelist_elem(deps.storage, &collateral_token_raw)?;
 
     if let Some(custody_contract) = custody_contract {
         whitelist_elem.custody_contract = deps
             .api
-            .canonical_address(&HumanAddr(custody_contract.to_string()))?;
+            .canonical_address(&custody_contract)?;
     }
 
     if let Some(max_ltv) = max_ltv {
@@ -640,7 +640,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
     let whitelist: Vec<WhitelistResponseElem> = read_whitelist(deps.as_ref(), None, None)?;
     for elem in whitelist.iter() {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(elem.custody_contract.clone()),
+            contract_addr: elem.custody_contract.clone(),
             send: vec![],
             msg: to_binary(&CustodyExecuteMsg::DistributeRewards {})?,
         }));
@@ -865,9 +865,8 @@ pub fn query_whitelist(
                 max_ltv: whitelist_elem.max_ltv,
                 custody_contract: deps
                     .api
-                    .human_address(&whitelist_elem.custody_contract)?
-                    .to_string(),
-                collateral_token: collateral_token.to_string(),
+                    .human_address(&whitelist_elem.custody_contract)?,
+                collateral_token: collateral_token,
             }],
         })
     } else {

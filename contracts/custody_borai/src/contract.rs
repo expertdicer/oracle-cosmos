@@ -60,6 +60,7 @@ pub fn handle(
             overseer_contract,
             market_contract,
             reward_contract,
+            swap_contract,
         } => update_config(
             deps,
             info,
@@ -68,6 +69,7 @@ pub fn handle(
             overseer_contract,
             market_contract,
             reward_contract,
+            swap_contract,
         ),
         ExecuteMsg::LockCollateral { borrower, amount } => {
             lock_collateral(deps, info, borrower, amount)
@@ -121,6 +123,7 @@ pub fn update_config(
     overseer_contract: Option<HumanAddr>,
     market_contract: Option<HumanAddr>,
     reward_contract: Option<HumanAddr>,
+    swap_contract: Option<HumanAddr>,
 ) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
 
@@ -145,7 +148,11 @@ pub fn update_config(
     }
 
     if let Some(reward_contract) = reward_contract {
-        config.owner = deps.api.canonical_address(&reward_contract)?;
+        config.reward_contract = deps.api.canonical_address(&reward_contract)?;
+    }
+
+    if let Some(swap_contract) = swap_contract {
+        config.swap_contract = deps.api.canonical_address(&swap_contract)?;
     }
 
     store_config(deps.storage, &config)?;

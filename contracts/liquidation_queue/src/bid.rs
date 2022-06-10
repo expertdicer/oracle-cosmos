@@ -304,7 +304,7 @@ pub fn execute_liquidation(
         collateral_token.clone(),
     )?
     .custody_contract;
-    if sender != HumanAddr(custody_contract) {
+    if sender != custody_contract {
         return Err(StdError::generic_err(
             "Unauthorized: only custody contract can execute liquidations",
         ));
