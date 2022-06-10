@@ -163,14 +163,11 @@ fn query_deposit_rate(deps: Deps, env: Env) -> StdResult<DepositRateResponse> {
     let config = read_config(deps.storage)?;
     let epochstate: EpochStateResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: config.market_contract,
-            msg: to_binary(&QueryExternalMsg::QueryEpochState {
-                block_height: env.block.height,
-                distributed_interest: Uint256::zero(),
-            })?,
+            contract_addr: config.overseer_contract,
+            msg: to_binary(&QueryExternalMsg::EpochState {})?,
         }))?;
 
     Ok(DepositRateResponse {
-        deposit_rate: epochstate.exchange_rate,
+        deposit_rate: epochstate.deposit_rate,
     })
 }

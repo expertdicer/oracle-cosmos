@@ -8,16 +8,16 @@ use cosmwasm_std::HumanAddr;
 #[serde(rename_all = "snake_case")]
 pub enum QueryExternalMsg {
     /// Request bAsset reward amount
-    QueryEpochState {
-        block_height: u64,
-        distributed_interest: Uint256,
-    },
+    EpochState {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct EpochStateResponse {
-    pub exchange_rate: Decimal256,
-    pub aterra_supply: Uint256,
+    pub deposit_rate: Decimal256,
+    pub prev_aterra_supply: Uint256,
+    pub prev_exchange_rate: Decimal256,
+    pub prev_interest_buffer: Uint256,
+    pub last_executed_height: u64,
 }
 
 // #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

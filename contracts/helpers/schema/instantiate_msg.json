@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InstantiateMsg",
+  "type": "object",
+  "required": [
+    "aterra_contract",
+    "collateral_contract",
+    "custody_borai_contract",
+    "denom_token",
+    "interest_contract",
+    "market_contract",
+    "orchai_contract",
+    "overseer_contract",
+    "owner",
+    "stable_addr",
+    "staking_contract"
+  ],
+  "properties": {
+    "aterra_contract": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "collateral_contract": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "custody_borai_contract": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "denom_token": {
+      "type": "string"
+    },
+    "interest_contract": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "market_contract": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "orchai_contract": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "overseer_contract": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "owner": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "stable_addr": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "staking_contract": {
+      "$ref": "#/definitions/HumanAddr"
+    }
+  },
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}

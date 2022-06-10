@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use helpers::external::query::{EpochStateResponse, QueryExternalMsg};
+use helpers::msgs::{ConfigResponse, DepositRateResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
@@ -11,6 +11,9 @@ fn main() {
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
 
-    export_schema(&schema_for!(EpochStateResponse), &out_dir);
-    export_schema(&schema_for!(QueryExternalMsg), &out_dir);
+    export_schema(&schema_for!(InstantiateMsg), &out_dir);
+    export_schema(&schema_for!(ExecuteMsg), &out_dir);
+    export_schema(&schema_for!(DepositRateResponse), &out_dir);
+    export_schema(&schema_for!(ConfigResponse), &out_dir);
+    export_schema(&schema_for!(QueryMsg), &out_dir);
 }
