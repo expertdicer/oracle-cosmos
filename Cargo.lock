@@ -464,13 +464,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "helper"
+name = "helpers"
 version = "0.1.0"
 dependencies = [
  "cosmwasm-bignumber",
  "cosmwasm-schema",
  "cosmwasm-std 0.13.2",
  "cosmwasm-storage",
+ "cw-storage-plus",
+ "cw0",
+ "cw2",
+ "cw20",
+ "cw20-base",
  "schemars 0.7.6",
  "serde",
  "thiserror",
