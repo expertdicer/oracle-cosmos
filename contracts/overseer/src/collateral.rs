@@ -1,7 +1,7 @@
 use cosmwasm_bignumber::{Decimal256, Uint256};
 use cosmwasm_std::{
     attr, to_binary, CosmosMsg, Deps, DepsMut, Env, HandleResponse, HumanAddr, MessageInfo,
-    StdResult, WasmMsg, Uint128,
+    StdResult, Uint128, WasmMsg,
 };
 
 use crate::error::ContractError;
@@ -11,15 +11,14 @@ use crate::state::{
     Config, WhitelistElem,
 };
 
+use cw20::Cw20HandleMsg;
 use moneymarket::custody::ExecuteMsg as CustodyExecuteMsg;
 use moneymarket::liquidation::LiquidationAmountResponse;
 use moneymarket::market::{BorrowerInfoResponse, ExecuteMsg as MarketExecuteMsg};
 use moneymarket::oracle::PriceResponse;
 use moneymarket::overseer::{AllCollateralsResponse, BorrowLimitResponse, CollateralsResponse};
-use moneymarket::querier::{query_balance, query_price, TimeConstraints, deduct_tax};
+use moneymarket::querier::{deduct_tax, query_balance, query_price, TimeConstraints};
 use moneymarket::tokens::{Tokens, TokensHuman, TokensMath, TokensToHuman, TokensToRaw};
-use cw20::Cw20HandleMsg;
-
 
 pub fn lock_collateral(
     deps: DepsMut,
@@ -169,8 +168,11 @@ pub fn liquidate_collateral(
     store_collaterals(deps.storage, &borrower_raw, &cur_collaterals)?;
 
     let market_contract = deps.api.human_address(&config.market_contract)?;
-    let prev_balance: Uint256 =
-        query_balance(deps.as_ref(), market_contract.clone(), deps.api.human_address(&config.stable_addr)?)?;
+    let prev_balance: Uint256 = query_balance(
+        deps.as_ref(),
+        market_contract.clone(),
+        deps.api.human_address(&config.stable_addr)?,
+    )?;
 
     let mut liquidation_messages: Vec<CosmosMsg> = liquidation_amount
         .iter()
@@ -189,7 +191,6 @@ pub fn liquidate_collateral(
         })
         .filter(|msg| msg.is_ok())
         .collect::<StdResult<Vec<CosmosMsg>>>()?;
-    
     // let send_stable_msg = CosmosMsg::Wasm(WasmMsg::Execute {
     //     contract_addr: HumanAddr(config.stable_addr.to_string()),
     //     msg: to_binary(&Cw20HandleMsg::Transfer {   // fixme critical
@@ -264,7 +265,7 @@ pub(crate) fn compute_borrow_limit(
     for collateral in collaterals.iter() {
         let collateral_token = collateral.0.clone();
         let collateral_amount = collateral.1;
-        // FIX CUNG NGUYEN NGU PRICE 
+        // FIX CUNG NGUYEN NGU PRICE
         // let price: PriceResponse = query_price(
         //     deps,
         //     oracle_contract.clone(),

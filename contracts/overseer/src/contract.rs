@@ -30,8 +30,8 @@ use moneymarket::overseer::{
     WhitelistResponseElem,
 };
 // use moneymarket::querier::{deduct_tax, query_balance};
-use moneymarket::querier::{deduct_tax, query_balance};
 use cw20::Cw20HandleMsg;
+use moneymarket::querier::{deduct_tax, query_balance};
 
 pub const BLOCKS_PER_YEAR: u128 = 4656810;
 
@@ -187,8 +187,8 @@ pub fn handle(
                 info,
                 name,
                 symbol,
-                api.human_address(&CanonicalAddr(to_binary(&collateral_token)?))?,
-                api.human_address(&CanonicalAddr(to_binary(&custody_contract)?))?,
+                collateral_token,
+                custody_contract,
                 max_ltv,
             )
         }
@@ -198,13 +198,7 @@ pub fn handle(
             max_ltv,
         } => {
             let api = deps.api;
-            update_whitelist(
-                deps,
-                info,
-                api.human_address(&CanonicalAddr(to_binary(&collateral_token)?))?,
-                custody_contract,
-                max_ltv,
-            )
+            update_whitelist(deps, info, collateral_token, custody_contract, max_ltv)
         }
         ExecuteMsg::ExecuteEpochOperations {} => execute_epoch_operations(deps, env),
         ExecuteMsg::UpdateEpochState {
@@ -333,17 +327,11 @@ pub fn register_whitelist(
     max_ltv: Decimal256,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    if deps
-        .api
-        .canonical_address(&HumanAddr(info.sender.to_string()))?
-        != config.owner_addr
-    {
+    if deps.api.canonical_address(&info.sender)? != config.owner_addr {
         return Err(ContractError::Unauthorized {});
     }
 
-    let collateral_token_raw = deps
-        .api
-        .canonical_address(&HumanAddr(collateral_token.to_string()))?;
+    let collateral_token_raw = deps.api.canonical_address(&collateral_token)?;
     if read_whitelist_elem(deps.storage, &collateral_token_raw).is_ok() {
         return Err(ContractError::TokenAlreadyRegistered {});
     }
@@ -544,21 +532,20 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
     // Send accrued_buffer * config.anc_purchase_factor amount stable token to collector
     let accrued_buffer = interest_buffer - state.prev_interest_buffer;
     let anc_purchase_amount = accrued_buffer * config.anc_purchase_factor; // FIX CUNG NGUYEN NGU
-    // if !anc_purchase_amount.is_zero() {
-    //     messages.push(CosmosMsg::Bank(BankMsg::Send {
-    //         from_address: env.contract.address.clone(),
-    //         to_address: deps.api.human_address(&config.collector_contract)?,
-    //         amount: vec![deduct_tax(
-    //             deps.as_ref(),
-    //             Coin {
-    //                 denom: config.stable_denom.to_string(),
-    //                 amount: anc_purchase_amount.into(),
-    //             },
-    //         )?],
-    //     }));
-    // }
-    
-    // FIX CUNG NGUYEN NGU
+                                                                           // if !anc_purchase_amount.is_zero() {
+                                                                           //     messages.push(CosmosMsg::Bank(BankMsg::Send {
+                                                                           //         from_address: env.contract.address.clone(),
+                                                                           //         to_address: deps.api.human_address(&config.collector_contract)?,
+                                                                           //         amount: vec![deduct_tax(
+                                                                           //             deps.as_ref(),
+                                                                           //             Coin {
+                                                                           //                 denom: config.stable_denom.to_string(),
+                                                                           //                 amount: anc_purchase_amount.into(),
+                                                                           //             },
+                                                                           //         )?],
+                                                                           //     }));
+                                                                           // }
+                                                                           // FIX CUNG NGUYEN NGU
     if !anc_purchase_amount.is_zero() {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps.api.human_address(&config.stable_addr)?,
@@ -616,13 +603,8 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
 
         if !distributed_interest.is_zero() {
             // deduct tax
-            distributed_interest = Uint256::from(
-                deduct_tax(
-                    deps.as_ref(),
-                    distributed_interest.into(), 
-                )?
-                ,
-            );
+            distributed_interest =
+                Uint256::from(deduct_tax(deps.as_ref(), distributed_interest.into())?);
 
             // Send some portion of interest buffer to Market contract
             messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -630,7 +612,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
                 send: vec![],
                 msg: to_binary(&Cw20HandleMsg::Transfer {
                     recipient: market_contract,
-                    amount:distributed_interest.into(),
+                    amount: distributed_interest.into(),
                 })?,
             }));
         }
@@ -826,10 +808,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .api
             .human_address(&config.collector_contract)?
             .to_string(),
-        stable_addr: deps
-            .api
-            .human_address(&config.stable_addr)?
-            .to_string(),
+        stable_addr: deps.api.human_address(&config.stable_addr)?.to_string(),
         epoch_period: config.epoch_period,
         threshold_deposit_rate: config.threshold_deposit_rate,
         target_deposit_rate: config.target_deposit_rate,
