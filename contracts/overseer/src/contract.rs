@@ -33,7 +33,7 @@ use moneymarket::overseer::{
 use cw20::Cw20HandleMsg;
 use moneymarket::querier::{deduct_tax, query_balance};
 
-pub const BLOCKS_PER_YEAR: u128 = 4656810;
+pub const BLOCKS_PER_YEAR: u128 = 6300000;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -156,6 +156,7 @@ pub fn handle(
             dyn_rate_yr_increase_expectation,
             dyn_rate_min,
             dyn_rate_max,
+            market_contract,
         } => update_config(
             deps,
             info,
@@ -173,6 +174,7 @@ pub fn handle(
             dyn_rate_yr_increase_expectation,
             dyn_rate_min,
             dyn_rate_max,
+            market_contract,
         ),
         ExecuteMsg::Whitelist {
             name,
@@ -240,6 +242,7 @@ pub fn update_config(
     dyn_rate_yr_increase_expectation: Option<Decimal256>,
     dyn_rate_min: Option<Decimal256>,
     dyn_rate_max: Option<Decimal256>,
+    market_contract: Option<HumanAddr>,
 ) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     let mut dynrate_config: DynrateConfig = read_dynrate_config(deps.storage)?;
@@ -306,6 +309,10 @@ pub fn update_config(
 
     if let Some(dyn_rate_max) = dyn_rate_max {
         dynrate_config.dyn_rate_max = dyn_rate_max;
+    }
+
+    if let Some(market_contract) = market_contract {
+        config.market_contract = deps.api.canonical_address(&market_contract)?;
     }
 
     store_config(deps.storage, &config)?;
