@@ -98,6 +98,16 @@
                 }
               ]
             },
+            "market_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "oracle_contract": {
               "anyOf": [
                 {
