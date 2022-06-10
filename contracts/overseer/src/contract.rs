@@ -33,7 +33,7 @@ use moneymarket::overseer::{
 use cw20::Cw20HandleMsg;
 use moneymarket::querier::{deduct_tax, query_balance};
 
-pub const BLOCKS_PER_YEAR: u128 = 4656810;
+pub const BLOCKS_PER_YEAR: u64 = 6300000;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -42,6 +42,17 @@ pub fn init(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<InitResponse> {
+    let threshold_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100);
+    let target_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100);
+    let buffer_distribution_factor: Decimal256 = Decimal256::from_ratio(50u64, 100u64);
+    let anc_purchase_factor: Decimal256 = Decimal256::from_ratio(20u64, 100u64);
+    let epoch_period: u64 = 1u64;
+    let price_timeframe: u64 = 10000000u64;
+    let dyn_rate_epoch: u64 = 1u64;
+    let dyn_rate_maxchange: Decimal256 = Decimal256::percent(10u64);
+    let dyn_rate_yr_increase_expectation: Decimal256 = Decimal256::percent(10u64);
+    let dyn_rate_min: Decimal256 = Decimal256::from_ratio(5, BLOCKS_PER_YEAR * 100);
+    let dyn_rate_max: Decimal256 = Decimal256::from_ratio(15, BLOCKS_PER_YEAR * 100);
     store_config(
         deps.storage,
         &Config {
@@ -51,23 +62,23 @@ pub fn init(
             liquidation_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
             collector_contract: deps.api.canonical_address(&msg.collector_contract)?,
             stable_addr: deps.api.canonical_address(&msg.stable_addr)?,
-            epoch_period: msg.epoch_period,
-            threshold_deposit_rate: msg.threshold_deposit_rate,
-            target_deposit_rate: msg.target_deposit_rate,
-            buffer_distribution_factor: msg.buffer_distribution_factor,
-            anc_purchase_factor: msg.anc_purchase_factor,
-            price_timeframe: msg.price_timeframe,
+            epoch_period: epoch_period, //msg.epoch_period,
+            threshold_deposit_rate: threshold_deposit_rate, // msg.threshold_deposit_rate,
+            target_deposit_rate: target_deposit_rate, // msg.target_deposit_rate,
+            buffer_distribution_factor: buffer_distribution_factor, // msg.buffer_distribution_factor,
+            anc_purchase_factor: anc_purchase_factor,               // msg.anc_purchase_factor,
+            price_timeframe: price_timeframe,                       //  msg.price_timeframe,
         },
     )?;
 
     store_dynrate_config(
         deps.storage,
         &DynrateConfig {
-            dyn_rate_epoch: msg.dyn_rate_epoch,
-            dyn_rate_maxchange: msg.dyn_rate_maxchange,
-            dyn_rate_yr_increase_expectation: msg.dyn_rate_yr_increase_expectation,
-            dyn_rate_min: msg.dyn_rate_min,
-            dyn_rate_max: msg.dyn_rate_max,
+            dyn_rate_epoch: dyn_rate_epoch,
+            dyn_rate_maxchange: dyn_rate_maxchange,
+            dyn_rate_yr_increase_expectation: dyn_rate_yr_increase_expectation,
+            dyn_rate_min: dyn_rate_min,
+            dyn_rate_max: dyn_rate_max,
         },
     )?;
 
@@ -156,6 +167,7 @@ pub fn handle(
             dyn_rate_yr_increase_expectation,
             dyn_rate_min,
             dyn_rate_max,
+            market_contract,
         } => update_config(
             deps,
             info,
@@ -173,6 +185,7 @@ pub fn handle(
             dyn_rate_yr_increase_expectation,
             dyn_rate_min,
             dyn_rate_max,
+            market_contract,
         ),
         ExecuteMsg::Whitelist {
             name,
@@ -240,13 +253,14 @@ pub fn update_config(
     dyn_rate_yr_increase_expectation: Option<Decimal256>,
     dyn_rate_min: Option<Decimal256>,
     dyn_rate_max: Option<Decimal256>,
+    market_contract: Option<HumanAddr>,
 ) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
     let mut dynrate_config: DynrateConfig = read_dynrate_config(deps.storage)?;
 
     if deps
         .api
-        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        .canonical_address(&info.sender)?
         != config.owner_addr
     {
         return Err(ContractError::Unauthorized {});
@@ -308,6 +322,10 @@ pub fn update_config(
         dynrate_config.dyn_rate_max = dyn_rate_max;
     }
 
+    if let Some(market_contract) = market_contract {
+        config.market_contract = deps.api.canonical_address(&market_contract)?;
+    }
+
     store_config(deps.storage, &config)?;
     store_dynrate_config(deps.storage, &dynrate_config)?;
     Ok(HandleResponse {
@@ -344,7 +362,7 @@ pub fn register_whitelist(
             symbol: symbol.to_string(),
             custody_contract: deps
                 .api
-                .canonical_address(&HumanAddr(custody_contract.to_string()))?,
+                .canonical_address(&custody_contract)?,
             max_ltv,
         },
     )?;
@@ -373,7 +391,7 @@ pub fn update_whitelist(
     let config: Config = read_config(deps.storage)?;
     if deps
         .api
-        .canonical_address(&HumanAddr(info.sender.to_string()))?
+        .canonical_address(&info.sender)?
         != config.owner_addr
     {
         return Err(ContractError::Unauthorized {});
@@ -381,14 +399,14 @@ pub fn update_whitelist(
 
     let collateral_token_raw = deps
         .api
-        .canonical_address(&HumanAddr(collateral_token.to_string()))?;
+        .canonical_address(&collateral_token)?;
     let mut whitelist_elem: WhitelistElem =
         read_whitelist_elem(deps.storage, &collateral_token_raw)?;
 
     if let Some(custody_contract) = custody_contract {
         whitelist_elem.custody_contract = deps
             .api
-            .canonical_address(&HumanAddr(custody_contract.to_string()))?;
+            .canonical_address(&custody_contract)?;
     }
 
     if let Some(max_ltv) = max_ltv {
@@ -622,7 +640,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
     let whitelist: Vec<WhitelistResponseElem> = read_whitelist(deps.as_ref(), None, None)?;
     for elem in whitelist.iter() {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(elem.custody_contract.clone()),
+            contract_addr: elem.custody_contract.clone(),
             send: vec![],
             msg: to_binary(&CustodyExecuteMsg::DistributeRewards {})?,
         }));
@@ -631,7 +649,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
     // TODO: Should this become a reply? If so which SubMsg to make reply_on?
     // Execute store epoch state operation
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: HumanAddr(env.contract.address.to_string()),
+        contract_addr: env.contract.address,
         send: vec![],
         msg: to_binary(&ExecuteMsg::UpdateEpochState {
             interest_buffer,
@@ -723,7 +741,7 @@ pub fn update_epoch_state(
             attr("interest_buffer", interest_buffer),
         ],
         messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(market_contract.to_string()),
+            contract_addr: market_contract,
             send: vec![],
             msg: response_msg,
         })],
@@ -774,8 +792,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         )?),
         QueryMsg::Collaterals { borrower } => to_binary(&query_collaterals(
             deps,
-            deps.api
-                .human_address(&CanonicalAddr(to_binary(&borrower)?))?,
+            borrower,
         )?),
         QueryMsg::AllCollaterals { start_after, limit } => {
             to_binary(&query_all_collaterals(deps, start_after, limit)?)
@@ -785,8 +802,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             block_time,
         } => to_binary(&query_borrow_limit(
             deps,
-            deps.api
-                .human_address(&CanonicalAddr(to_binary(&borrower)?))?,
+            borrower,
             block_time,
         )?),
         QueryMsg::DynrateState {} => to_binary(&query_dynrate_state(deps)?),
@@ -849,9 +865,8 @@ pub fn query_whitelist(
                 max_ltv: whitelist_elem.max_ltv,
                 custody_contract: deps
                     .api
-                    .human_address(&whitelist_elem.custody_contract)?
-                    .to_string(),
-                collateral_token: collateral_token.to_string(),
+                    .human_address(&whitelist_elem.custody_contract)?,
+                collateral_token: collateral_token,
             }],
         })
     } else {

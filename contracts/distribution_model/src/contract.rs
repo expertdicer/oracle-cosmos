@@ -69,7 +69,7 @@ pub fn update_config(
     decrement_multiplier: Option<Decimal256>,
 ) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
-    if deps.api.canonical_address(&HumanAddr(info.sender.to_string()))? != config.owner {
+    if deps.api.canonical_address(&info.sender)? != config.owner {
         return Err(ContractError::Unauthorized {});
     }
 

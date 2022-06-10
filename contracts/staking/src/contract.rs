@@ -8,11 +8,13 @@ use cosmwasm_std::entry_point;
 
 use cosmwasm_std::{
     attr, to_binary, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, HandleResponse,
-    HumanAddr, InitResponse, MessageInfo, StakingMsg, StdResult, Uint128, WasmMsg,
+    HumanAddr, InitResponse, MessageInfo, QueryRequest, StakingMsg, StdResult, Uint128, WasmMsg,
+    WasmQuery,
 };
 
 use crate::msgs::{ClaimableResponse, ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use cw20::Cw20HandleMsg;
+use cw20::{BalanceResponse, Cw20QueryMsg, TokenInfoResponse};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -60,9 +62,9 @@ pub fn handle(
             validator_to_delegate,
             orchai_token,
         ),
-        ExecuteMsg::StakingOrai { amount } => staking_orai(deps, _env, info, amount),
-        ExecuteMsg::ClaimOrchaiReward {} => handle_claim_reward(deps, _env, info),
-        ExecuteMsg::ClaimRewards { recipient } => withdraw_pos_reward(deps, _env, info, recipient),
+        ExecuteMsg::StakingOrai {} => staking_orai(deps, _env, info),
+        ExecuteMsg::ClaimRewards { recipient } => handle_claim_reward(deps, _env, info, recipient),
+        ExecuteMsg::UpdateUserReward { user } => handle_update_reward_index(deps, _env, info, user),
     }
 }
 
@@ -109,17 +111,17 @@ pub fn staking_orai(
     deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    amount: Uint256,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
     // user send orai to contract
 
-    // let initial_deposit = _info
-    //     .sent_funds
-    //     .iter()
-    //     .find(|c| c.denom == config.native_token_denom)
-    //     .map(|c| c.amount)
-    //     .unwrap_or_else(Uint128::zero);
+    let amount: Uint256 = _info
+        .sent_funds
+        .iter()
+        .find(|c| c.denom == config.native_token_denom)
+        .map(|c| c.amount)
+        .unwrap_or_else(Uint128::zero)
+        .into();
 
     let mut messages: Vec<CosmosMsg> = vec![];
     // delegate orai to validator
@@ -183,11 +185,16 @@ pub fn handle_claim_reward(
     deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
+    recipient: Option<HumanAddr>,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    let user_raw = deps
-        .api
-        .canonical_address(&HumanAddr(_info.sender.to_string()))?;
+
+    let recipient = if let Some(recipient) = recipient {
+        recipient
+    } else {
+        _info.sender.clone()
+    };
+    let user_raw = deps.api.canonical_address(&recipient)?;
     let mut user_reward: UserReward = read_user_reward_elem(deps.storage, &user_raw)?;
 
     let current_time = _env.block.time;
@@ -199,13 +206,18 @@ pub fn handle_claim_reward(
     user_reward.last_time = current_time;
     // send reward to user
     let mut messages: Vec<CosmosMsg> = vec![];
-    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: config.orchai_token,
-        send: vec![],
-        msg: to_binary(&Cw20HandleMsg::Transfer {
-            recipient: _info.sender,
+
+    messages.push(CosmosMsg::Staking(StakingMsg::Withdraw {
+        validator: config.validator_to_delegate.clone(),
+        recipient: Some(_env.contract.address.clone()),
+    }));
+    messages.push(CosmosMsg::Bank(BankMsg::Send {
+        from_address: _env.contract.address.clone(),
+        to_address: _info.sender,
+        amount: vec![Coin {
+            denom: config.native_token_denom,
             amount: user_reward.last_reward.clone().into(),
-        })?,
+        }],
     }));
 
     user_reward.last_reward = Uint256::zero();
@@ -228,10 +240,12 @@ pub fn withdraw_pos_reward(
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
     let mut messages: Vec<CosmosMsg> = vec![];
-    let mut recipient_raw = _info.sender.clone();
-    if let Some(recipient) = recipient {
-        recipient_raw = recipient;
-    }
+    // let mut recipient_raw = _info.sender.clone();
+    // if let Some(recipient) = recipient {
+    //     recipient_raw = recipient;
+    // }
+
+    let recipient_raw = _env.contract.address;
     messages.push(CosmosMsg::Staking(StakingMsg::Withdraw {
         validator: config.validator_to_delegate.clone(),
         recipient: Some(recipient_raw.clone()),
@@ -244,6 +258,120 @@ pub fn withdraw_pos_reward(
             attr("recipient", recipient_raw),
         ],
         messages: messages,
+        data: None,
+    };
+    Ok(res)
+}
+
+pub fn handle_update_reward_index(
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    user: HumanAddr,
+) -> Result<HandleResponse, ContractError> {
+    let config: Config = read_config(deps.storage)?;
+    let sender_raw = deps.api.canonical_address(&user)?;
+    if read_user_reward_elem(deps.storage, &sender_raw).is_err() {
+        store_user_reward_elem(
+            deps.storage,
+            &sender_raw,
+            &UserReward {
+                last_reward: Uint256::zero(),
+                last_time: _env.block.time,
+                amount: Uint256::zero(),
+            },
+        )?;
+    }
+
+    let mut user_reward: UserReward = read_user_reward_elem(deps.storage, &sender_raw)?;
+    let current_time = _env.block.time;
+    let year = Decimal256::from_uint256(31536000u128);
+    let reward =
+        user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr
+            / year;
+    user_reward.last_reward += reward;
+    user_reward.last_time = current_time;
+
+    // get current ballance
+    let balance: BalanceResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: config.asset_token.clone(),
+        msg: to_binary(&Cw20QueryMsg::Balance {
+            address: user.clone(),
+        })?,
+    }))?;
+
+    let balance: Uint256 = balance.balance.into();
+
+    user_reward.amount = balance;
+    store_user_reward_elem(deps.storage, &sender_raw, &user_reward)?;
+    Ok(HandleResponse::default())
+}
+pub fn handle_withdraw(
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    amount: Uint256,
+) -> Result<HandleResponse, ContractError> {
+    let config: Config = read_config(deps.storage)?;
+    let sender_raw = deps.api.canonical_address(&_info.sender)?;
+    if read_user_reward_elem(deps.storage, &sender_raw).is_err() {
+        store_user_reward_elem(
+            deps.storage,
+            &sender_raw,
+            &UserReward {
+                last_reward: Uint256::zero(),
+                last_time: _env.block.time,
+                amount: Uint256::zero(),
+            },
+        )?;
+    }
+
+    let mut user_reward: UserReward = read_user_reward_elem(deps.storage, &sender_raw)?;
+    let balance: BalanceResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: config.asset_token.clone(),
+        msg: to_binary(&Cw20QueryMsg::Balance {
+            address: _info.sender.clone(),
+        })?,
+    }))?;
+
+    let balance: Uint256 = balance.balance.into();
+
+    if amount > balance {
+        return Err(ContractError::ExceedAmout {});
+    }
+
+    let current_time = _env.block.time;
+    let year = Decimal256::from_uint256(31536000u128);
+    let reward =
+        user_reward.amount * Uint256::from(current_time - user_reward.last_time) * config.base_apr
+            / year;
+    user_reward.last_reward += reward;
+    user_reward.last_time = current_time;
+    user_reward.amount = balance - amount;
+
+    let res = HandleResponse {
+        attributes: vec![
+            attr("action", "redeem_stable"),
+            attr("burn_amount", amount.clone()),
+            attr("redeem_amount", amount.clone()),
+        ],
+        messages: vec![
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: config.asset_token.clone(),
+                send: vec![],
+                msg: to_binary(&Cw20HandleMsg::Burn {
+                    amount: amount.clone().into(),
+                })?,
+            }),
+            CosmosMsg::Bank(BankMsg::Send {
+                from_address: _env.contract.address.clone(),
+                to_address: _info.sender,
+                amount: vec![Coin {
+                    denom: config.native_token_denom,
+                    amount: amount.clone().into(),
+                }],
+            }),
+        ],
         data: None,
     };
     Ok(res)

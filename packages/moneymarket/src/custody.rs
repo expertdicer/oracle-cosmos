@@ -45,6 +45,7 @@ pub enum ExecuteMsg {
         overseer_contract: Option<HumanAddr>,
         market_contract: Option<HumanAddr>,
         reward_contract: Option<HumanAddr>,
+        swap_contract: Option<HumanAddr>,
     },
     /// Make specified amount of tokens unspendable
     LockCollateral {

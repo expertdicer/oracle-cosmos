@@ -53,13 +53,14 @@ pub fn handle(
     msg: ExecuteMsg,
 ) -> Result<HandleResponse, ContractError> {
     match msg {
-        ExecuteMsg::Receive(msg) => receive_cw20(deps, info, msg),
+        ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
         ExecuteMsg::UpdateConfig {
             owner,
             liquidation_contract,
             overseer_contract,
             market_contract,
             reward_contract,
+            swap_contract,
         } => update_config(
             deps,
             info,
@@ -68,6 +69,7 @@ pub fn handle(
             overseer_contract,
             market_contract,
             reward_contract,
+            swap_contract,
         ),
         ExecuteMsg::LockCollateral { borrower, amount } => {
             lock_collateral(deps, info, borrower, amount)
@@ -89,6 +91,7 @@ pub fn handle(
 
 pub fn receive_cw20(
     deps: DepsMut,
+    env: Env,
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
 ) -> Result<HandleResponse, ContractError> {
@@ -98,16 +101,12 @@ pub fn receive_cw20(
         Ok(Cw20HookMsg::DepositCollateral {}) => {
             // only asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
-            if deps
-                .api
-                .canonical_address(&HumanAddr(contract_addr.to_string()))?
-                != config.collateral_token
-            {
+            if deps.api.canonical_address(&contract_addr)? != config.collateral_token {
                 return Err(ContractError::Unauthorized {});
             }
 
             let cw20_sender_addr = cw20_msg.sender;
-            deposit_collateral(deps, cw20_sender_addr, cw20_msg.amount.into())
+            deposit_collateral(deps, env, cw20_sender_addr, cw20_msg.amount.into())
         }
         _ => Err(ContractError::MissingDepositCollateralHook {}),
     }
@@ -121,6 +120,7 @@ pub fn update_config(
     overseer_contract: Option<HumanAddr>,
     market_contract: Option<HumanAddr>,
     reward_contract: Option<HumanAddr>,
+    swap_contract: Option<HumanAddr>,
 ) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
 
@@ -145,7 +145,11 @@ pub fn update_config(
     }
 
     if let Some(reward_contract) = reward_contract {
-        config.owner = deps.api.canonical_address(&reward_contract)?;
+        config.reward_contract = deps.api.canonical_address(&reward_contract)?;
+    }
+
+    if let Some(swap_contract) = swap_contract {
+        config.swap_contract = deps.api.canonical_address(&swap_contract)?;
     }
 
     store_config(deps.storage, &config)?;

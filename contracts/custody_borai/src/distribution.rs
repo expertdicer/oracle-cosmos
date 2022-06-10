@@ -77,12 +77,12 @@ pub fn distribute_hook(deps: DepsMut, env: Env) -> Result<HandleResponse, Contra
     let reward_amount: Uint256 = query_balance(
         deps.as_ref(),
         env.contract.address.clone(),
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )?;
     let mut messages: Vec<CosmosMsg> = vec![]; // fixme
     if !reward_amount.is_zero() {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            contract_addr: deps.api.human_address(&config.stable_addr)?,
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: overseer_contract,
                 amount: reward_amount.into(),
@@ -118,27 +118,25 @@ pub fn swap_to_stable_denom(deps: DepsMut, env: Env) -> Result<HandleResponse, C
     let orai_balance: Uint128 = balance_res.amount.amount;
     // let mut messages: Vec<CosmosMsg> = balances
     //     .iter()
-    //     .filter(|x| x.denom != config.stable_denom.clone())
+    //     .filter(|x| x.denom != config.stable_addr.clone())
     //     .map(|coin: &Coin| { create_swap_msg(&coin, config.stable_denom.as_str(), swap_contract.clone())}
     //     )// fixme
     //     .collect::<StdResult<Vec<CosmosMsg>>>()?;
 
-    // a Nguyen check ho em phan nay
-    // let mut messages = vec![CosmosMsg::Wasm(WasmMsg::Execute {
-    //     contract_addr: swap_contract,
-    //     msg: to_binary(&moneymarket::dex::ExecuteMsg::SwapForStable {
-    //         recipient: env.contract.address,
-    //     })?,
-    //     send: vec![Coin {
-    //         denom: "orai".to_string(),
-    //         amount: orai_balance,
-    //     }],
-    // })];
+    let mut messages: Vec<CosmosMsg> = vec![CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: swap_contract,
+        msg: to_binary(&moneymarket::dex::ExecuteMsg::SwapForStable {
+            recipient: env.contract.address.clone(),
+        })?,
+        send: vec![Coin {
+            denom: "orai".to_string(),
+            amount: orai_balance,
+        }],
+    })];
 
     // neu xong thi a comment doan duoi nay di nha
 
     let stable_ballance: Uint128 = orai_balance + orai_balance + orai_balance;
-    let mut messages: Vec<CosmosMsg> = vec![];
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: deps.api.human_address(&config.stable_addr)?,
         send: vec![],

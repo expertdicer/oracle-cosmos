@@ -51,7 +51,7 @@ pub fn query_borrower_info(
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: market_addr,
             msg: to_binary(&MarketQueryMsg::BorrowerInfo {
-                borrower: borrower.to_string(),
+                borrower: borrower,
                 block_height: Some(block_height),
             })?,
         }))?;

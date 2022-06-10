@@ -73,6 +73,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "swap_contract": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           }
         }

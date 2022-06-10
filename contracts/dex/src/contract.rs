@@ -65,7 +65,7 @@ pub fn receive_cw20(
         Ok(Cw20HookMsg::SwapForDenom {}) => {
             // only input_token asset contract can execute this message
             let config: Config = read_config(deps.storage)?;
-            if deps.api.canonical_address(&HumanAddr(contract_addr.to_string()))? != config.input_token {
+            if deps.api.canonical_address(&contract_addr)? != config.input_token {
                 return Err(ContractError::Unauthorized {});
             }
 
@@ -126,10 +126,10 @@ pub fn swap_for_stable(
             attr("amount", amount.to_string()),
         ],
         messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: env.contract.address,
+            contract_addr: deps.api.human_address(&config.input_token)?,
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: receiver,
-                amount: amount,
+                amount: amount + amount + amount,
             })?,
             send: vec![],
         })],

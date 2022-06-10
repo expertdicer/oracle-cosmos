@@ -31,12 +31,12 @@ pub enum ExecuteMsg {
         validator_to_delegate: Option<HumanAddr>,
         orchai_token: Option<HumanAddr>,
     },
-    StakingOrai {
-        amount: Uint256,
-    },
-    ClaimOrchaiReward {},
+    StakingOrai {},
     ClaimRewards {
         recipient: Option<HumanAddr>,
+    },
+    UpdateUserReward {
+        user: HumanAddr,
     },
 }
 

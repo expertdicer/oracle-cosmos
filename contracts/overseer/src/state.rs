@@ -138,8 +138,8 @@ pub fn read_whitelist(
         .take(limit)
         .map(|elem| {
             let (k, v) = elem?;
-            let collateral_token = deps.api.human_address(&CanonicalAddr::from(k))?.to_string();
-            let custody_contract = deps.api.human_address(&v.custody_contract)?.to_string();
+            let collateral_token = deps.api.human_address(&CanonicalAddr::from(k))?;
+            let custody_contract = deps.api.human_address(&v.custody_contract)?;
             Ok(WhitelistResponseElem {
                 name: v.name,
                 symbol: v.symbol,

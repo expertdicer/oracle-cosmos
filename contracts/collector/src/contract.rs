@@ -142,7 +142,7 @@ pub fn sweep(deps: DepsMut, env: Env, denom: String) -> StdResult<HandleResponse
 
     // deduct tax first
     let amount = (swap_asset.deduct_tax(
-        &OracleContract(HumanAddr(config.oraiswap_oracle.to_string())),
+        &OracleContract(deps.api.human_address(&config.oraiswap_oracle)?),
         &deps.querier,
     )?)
     .amount;

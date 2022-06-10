@@ -72,25 +72,6 @@
       ],
       "properties": {
         "staking_orai": {
-          "type": "object",
-          "required": [
-            "amount"
-          ],
-          "properties": {
-            "amount": {
-              "$ref": "#/definitions/Uint256"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "object",
-      "required": [
-        "claim_orchai_reward"
-      ],
-      "properties": {
-        "claim_orchai_reward": {
           "type": "object"
         }
       }
@@ -117,6 +98,25 @@
           }
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "update_user_reward"
+      ],
+      "properties": {
+        "update_user_reward": {
+          "type": "object",
+          "required": [
+            "user"
+          ],
+          "properties": {
+            "user": {
+              "$ref": "#/definitions/HumanAddr"
+            }
+          }
+        }
+      }
     }
   ],
   "definitions": {
@@ -125,9 +125,6 @@
       "type": "string"
     },
     "HumanAddr": {
-      "type": "string"
-    },
-    "Uint256": {
       "type": "string"
     }
   }

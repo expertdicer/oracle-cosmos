@@ -3,38 +3,33 @@
   "title": "InstantiateMsg",
   "type": "object",
   "required": [
-    "anc_purchase_factor",
-    "buffer_distribution_factor",
     "collector_contract",
-    "dyn_rate_epoch",
-    "dyn_rate_max",
-    "dyn_rate_maxchange",
-    "dyn_rate_min",
-    "dyn_rate_yr_increase_expectation",
-    "epoch_period",
     "liquidation_contract",
     "market_contract",
     "oracle_contract",
     "owner_addr",
-    "price_timeframe",
-    "stable_addr",
-    "target_deposit_rate",
-    "threshold_deposit_rate"
+    "stable_addr"
   ],
   "properties": {
     "anc_purchase_factor": {
       "description": "Ratio to be used for purchasing ANC token from the interest buffer",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/definitions/Decimal256"
+        },
+        {
+          "type": "null"
         }
       ]
     },
     "buffer_distribution_factor": {
       "description": "Ratio to be distributed from the interest buffer",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/definitions/Decimal256"
+        },
+        {
+          "type": "null"
         }
       ]
     },
@@ -48,40 +43,62 @@
     },
     "dyn_rate_epoch": {
       "title": "of blocks per each dynamic rate change period",
-      "type": "integer",
+      "type": [
+        "integer",
+        "null"
+      ],
       "format": "uint64",
       "minimum": 0.0
     },
     "dyn_rate_max": {
-      "$ref": "#/definitions/Decimal256"
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Decimal256"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "dyn_rate_maxchange": {
       "description": "maximum rate change during update",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/definitions/Decimal256"
+        },
+        {
+          "type": "null"
         }
       ]
     },
     "dyn_rate_min": {
       "description": "clamps for dyn rate",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/definitions/Decimal256"
+        },
+        {
+          "type": "null"
         }
       ]
     },
     "dyn_rate_yr_increase_expectation": {
       "description": "amount of slack in yr change to trigger rate update",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/definitions/Decimal256"
+        },
+        {
+          "type": "null"
         }
       ]
     },
     "epoch_period": {
       "title": "of blocks per epoch period",
-      "type": "integer",
+      "type": [
+        "integer",
+        "null"
+      ],
       "format": "uint64",
       "minimum": 0.0
     },
@@ -119,7 +136,10 @@
     },
     "price_timeframe": {
       "description": "Valid oracle price timeframe",
-      "type": "integer",
+      "type": [
+        "integer",
+        "null"
+      ],
       "format": "uint64",
       "minimum": 0.0
     },
@@ -133,17 +153,23 @@
     },
     "target_deposit_rate": {
       "description": "Target deposit rate. When current deposit rate is bigger than this, Custody contracts send rewards to interest buffer",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/definitions/Decimal256"
+        },
+        {
+          "type": "null"
         }
       ]
     },
     "threshold_deposit_rate": {
       "description": "Distribute interest buffer to market contract, when deposit_rate < threshold_deposit_rate",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/definitions/Decimal256"
+        },
+        {
+          "type": "null"
         }
       ]
     }
