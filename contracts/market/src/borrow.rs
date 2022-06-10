@@ -260,9 +260,8 @@ pub fn compute_interest(
         state.total_reserves,
     )?;
 
-    let target_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100u64);
-    // let target_deposit_rate: Decimal256 =
-    //     query_target_deposit_rate(deps, deps.api.human_address(&config.overseer_contract)?)?;
+    let target_deposit_rate: Decimal256 =
+        query_target_deposit_rate(deps, deps.api.human_address(&config.overseer_contract)?)?;
 
     compute_interest_raw(
         state,

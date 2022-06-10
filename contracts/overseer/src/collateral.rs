@@ -277,7 +277,7 @@ pub(crate) fn compute_borrow_limit(
         //     }),
         // )?;
         let price = PriceResponse {
-            rate: Decimal256::one(),
+            rate: Decimal256::from_ratio(3, 1),
             last_updated_base: 1,
             last_updated_quote: 1,
         };

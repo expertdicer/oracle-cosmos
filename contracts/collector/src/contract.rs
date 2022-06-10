@@ -2,21 +2,21 @@
 use cosmwasm_std::entry_point;
 
 use cosmwasm_std::{
-    attr, to_binary, HumanAddr, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    InitResponse, HandleResponse, MigrateResponse, StdError, StdResult, WasmMsg,
+    attr, to_binary, Binary, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, HandleResponse,
+    HumanAddr, InitResponse, MessageInfo, MigrateResponse, StdError, StdResult, WasmMsg,
 };
 
 use crate::state::{read_config, store_config, Config};
 
 use crate::migration::migrate_config;
-use anchor_token::collector::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use oraiswap::asset::{Asset, AssetInfo, PairInfo};
-use oraiswap::pair::HandleMsg as AstroportExecuteMsg;
-use oraiswap::oracle::OracleContract;
 use crate::queurier::{query_balance, query_token_balance};
-use oraiswap::querier::query_pair_info;
-use cw20::Cw20HandleMsg;
+use anchor_token::collector::{ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use cosmwasm_std::Uint128;
+use cw20::Cw20HandleMsg;
+use oraiswap::asset::{Asset, AssetInfo, PairInfo};
+use oraiswap::oracle::OracleContract;
+use oraiswap::pair::HandleMsg as AstroportExecuteMsg;
+use oraiswap::querier::query_pair_info;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -41,7 +41,12 @@ pub fn init(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn handle(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<HandleResponse> {
+pub fn handle(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: ExecuteMsg,
+) -> StdResult<HandleResponse> {
     match msg {
         ExecuteMsg::UpdateConfig {
             reward_factor,
@@ -122,7 +127,11 @@ pub fn sweep(deps: DepsMut, env: Env, denom: String) -> StdResult<HandleResponse
         ],
     )?;
 
-    let amount = query_balance(deps.as_ref(), env.contract.address.clone(), denom.to_string())?;
+    let amount = query_balance(
+        deps.as_ref(),
+        env.contract.address.clone(),
+        denom.to_string(),
+    )?;
 
     let swap_asset = Asset {
         info: AssetInfo::NativeToken {
@@ -132,8 +141,11 @@ pub fn sweep(deps: DepsMut, env: Env, denom: String) -> StdResult<HandleResponse
     };
 
     // deduct tax first
-    let amount = (swap_asset.deduct_tax(&OracleContract(HumanAddr(config.oraiswap_oracle.to_string())), &deps.querier)?).amount;
-    
+    let amount = (swap_asset.deduct_tax(
+        &OracleContract(HumanAddr(config.oraiswap_oracle.to_string())),
+        &deps.querier,
+    )?)
+    .amount;
     let res = HandleResponse {
         attributes: vec![
             attr("action", "sweep"),
@@ -243,7 +255,12 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _info: MessageInfo, msg: MigrateMsg) -> StdResult<MigrateResponse> {
+pub fn migrate(
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: MigrateMsg,
+) -> StdResult<MigrateResponse> {
     //migrate config
     migrate_config(
         deps.storage,
@@ -255,9 +272,8 @@ pub fn migrate(deps: DepsMut, _env: Env, _info: MessageInfo, msg: MigrateMsg) ->
 }
 
 fn checked_sub(left: Uint128, right: Uint128) -> StdResult<Uint128> {
-    left.0.checked_sub(right.0).map(Uint128).ok_or_else(|| {
-        StdError::generic_err(
-            "OverFlow",
-        )
-    })
+    left.0
+        .checked_sub(right.0)
+        .map(Uint128)
+        .ok_or_else(|| StdError::generic_err("OverFlow"))
 }
