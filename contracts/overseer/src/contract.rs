@@ -792,8 +792,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         )?),
         QueryMsg::Collaterals { borrower } => to_binary(&query_collaterals(
             deps,
-            deps.api
-                .human_address(&CanonicalAddr(to_binary(&borrower)?))?,
+            borrower,
         )?),
         QueryMsg::AllCollaterals { start_after, limit } => {
             to_binary(&query_all_collaterals(deps, start_after, limit)?)
@@ -803,8 +802,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             block_time,
         } => to_binary(&query_borrow_limit(
             deps,
-            deps.api
-                .human_address(&CanonicalAddr(to_binary(&borrower)?))?,
+            borrower,
             block_time,
         )?),
         QueryMsg::DynrateState {} => to_binary(&query_dynrate_state(deps)?),
