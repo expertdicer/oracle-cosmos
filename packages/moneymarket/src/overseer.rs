@@ -144,14 +144,14 @@ pub enum QueryMsg {
         limit: Option<u32>,
     },
     Collaterals {
-        borrower: String,
+        borrower: HumanAddr,
     },
     AllCollaterals {
         start_after: Option<HumanAddr>,
         limit: Option<u32>,
     },
     BorrowLimit {
-        borrower: String,
+        borrower: HumanAddr,
         block_time: Option<u64>,
     },
 }

@@ -35,7 +35,7 @@ pub fn query_borrow_limit(
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: overseer_addr,
             msg: to_binary(&OverseerQueryMsg::BorrowLimit {
-                borrower: borrower.to_string(),
+                borrower: borrower,
                 block_time,
             })?,
         }))?;

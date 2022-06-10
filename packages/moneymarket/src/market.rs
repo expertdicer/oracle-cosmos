@@ -210,7 +210,7 @@ pub enum QueryMsg {
         distributed_interest: Option<Uint256>,
     },
     BorrowerInfo {
-        borrower: String,
+        borrower: HumanAddr,
         block_height: Option<u64>,
     },
     BorrowerInfos {
