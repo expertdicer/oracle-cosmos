@@ -62,7 +62,7 @@ pub fn handle(
             validator_to_delegate,
             orchai_token,
         ),
-        ExecuteMsg::StakingOrai { amount } => staking_orai(deps, _env, info, amount),
+        ExecuteMsg::StakingOrai {} => staking_orai(deps, _env, info),
         ExecuteMsg::ClaimRewards { recipient } => handle_claim_reward(deps, _env, info, recipient),
         ExecuteMsg::UpdateUserReward { user } => handle_update_reward_index(deps, _env, info, user),
     }
@@ -111,17 +111,17 @@ pub fn staking_orai(
     deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    amount: Uint256,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
     // user send orai to contract
 
-    // let initial_deposit = _info
-    //     .sent_funds
-    //     .iter()
-    //     .find(|c| c.denom == config.native_token_denom)
-    //     .map(|c| c.amount)
-    //     .unwrap_or_else(Uint128::zero);
+    let amount: Uint256 = _info
+        .sent_funds
+        .iter()
+        .find(|c| c.denom == config.native_token_denom)
+        .map(|c| c.amount)
+        .unwrap_or_else(Uint128::zero)
+        .into();
 
     let mut messages: Vec<CosmosMsg> = vec![];
     // delegate orai to validator

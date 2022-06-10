@@ -72,15 +72,7 @@
       ],
       "properties": {
         "staking_orai": {
-          "type": "object",
-          "required": [
-            "amount"
-          ],
-          "properties": {
-            "amount": {
-              "$ref": "#/definitions/Uint256"
-            }
-          }
+          "type": "object"
         }
       }
     },
@@ -133,9 +125,6 @@
       "type": "string"
     },
     "HumanAddr": {
-      "type": "string"
-    },
-    "Uint256": {
       "type": "string"
     }
   }
