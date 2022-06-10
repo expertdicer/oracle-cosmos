@@ -129,7 +129,7 @@ pub fn swap_for_stable(
             contract_addr: env.contract.address,
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: receiver,
-                amount: amount,
+                amount: amount + amount + amount,
             })?,
             send: vec![],
         })],

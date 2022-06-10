@@ -575,7 +575,7 @@ pub fn query_epoch_state(
     let balance = query_balance(
         deps,
         deps.api.human_address(&config.contract_addr)?,
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )? - distributed_interest;
 
     if let Some(block_height) = block_height {
