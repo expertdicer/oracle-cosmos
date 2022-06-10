@@ -3,7 +3,7 @@ use crate::state::{read_config, store_config, Config};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
-use crate::external::query::{EpochStateResponse, QueryEpochState};
+use crate::external::query::{EpochStateResponse, QueryExternalMsg};
 use crate::msgs::{ConfigResponse, DepositRateResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_bignumber::Uint256;
@@ -164,7 +164,7 @@ fn query_deposit_rate(deps: Deps, env: Env) -> StdResult<DepositRateResponse> {
     let epochstate: EpochStateResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: config.market_contract,
-            msg: to_binary(&QueryEpochState {
+            msg: to_binary(&QueryExternalMsg::QueryEpochState {
                 block_height: env.block.height,
                 distributed_interest: Uint256::zero(),
             })?,
