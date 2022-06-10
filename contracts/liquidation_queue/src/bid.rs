@@ -255,7 +255,7 @@ pub fn retract_bid(
     let mut messages: Vec<CosmosMsg> = vec![];
     if !withdraw_amount.is_zero() {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            contract_addr: deps.api.human_address(&config.stable_addr)?,
             msg:  to_binary(&Cw20HandleMsg::Transfer {
                 recipient: info.sender,
                 amount: deduct_tax(deps.as_ref(), withdraw_amount.into())?,

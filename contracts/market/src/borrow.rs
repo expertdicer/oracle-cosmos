@@ -55,11 +55,11 @@ pub fn borrow_stable(
             borrow_limit_res.borrow_limit.into(),
         ));
     }
-    let query_target = HumanAddr(env.contract.address.to_string());
+    let query_target = env.contract.address.clone();
     let current_balance = query_balance(
         deps.as_ref(),
         query_target,
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )?;
 
     // Assert borrow amount
@@ -73,11 +73,11 @@ pub fn borrow_stable(
     let res = HandleResponse {
         attributes: vec![
             attr("action", "borrow_stable"),
-            attr("borrower", HumanAddr(borrower.to_string())),
+            attr("borrower", borrower.to_string()),
             attr("borrow_amount", borrow_amount),
         ],
         messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            contract_addr: deps.api.human_address(&config.stable_addr)?,
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: to.unwrap_or_else(|| borrower.clone()),
                 amount: deduct_tax(deps.as_ref(), borrow_amount.into())?,
@@ -104,7 +104,7 @@ pub fn repay_stable_from_liquidation(
     let cur_balance: Uint256 = query_balance(
         deps.as_ref(),
         env.contract.address.clone(),
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )?;
 
     let amount: Uint256 = cur_balance - prev_balance;
@@ -152,9 +152,9 @@ pub fn repay_stable(
 
         // Payback left repay amount to sender
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            contract_addr: deps.api.human_address(&config.stable_addr)?,
             msg: to_binary(&Cw20HandleMsg::Transfer {
-                recipient: HumanAddr(borrower.to_string()),
+                recipient: borrower.clone(),
                 amount: deduct_tax(deps.as_ref(), (amount - repay_amount).into())?,
             })?,
             send: vec![],

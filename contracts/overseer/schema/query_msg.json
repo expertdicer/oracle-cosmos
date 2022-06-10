@@ -89,7 +89,7 @@
           ],
           "properties": {
             "borrower": {
-              "type": "string"
+              "$ref": "#/definitions/HumanAddr"
             }
           }
         }
@@ -147,7 +147,7 @@
               "minimum": 0.0
             },
             "borrower": {
-              "type": "string"
+              "$ref": "#/definitions/HumanAddr"
             }
           }
         }

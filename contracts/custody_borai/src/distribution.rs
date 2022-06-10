@@ -77,12 +77,12 @@ pub fn distribute_hook(deps: DepsMut, env: Env) -> Result<HandleResponse, Contra
     let reward_amount: Uint256 = query_balance(
         deps.as_ref(),
         env.contract.address.clone(),
-        HumanAddr(config.stable_addr.to_string()),
+        deps.api.human_address(&config.stable_addr)?,
     )?;
     let mut messages: Vec<CosmosMsg> = vec![]; // fixme
     if !reward_amount.is_zero() {
         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: HumanAddr(config.stable_addr.to_string()),
+            contract_addr: deps.api.human_address(&config.stable_addr)?,
             msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: overseer_contract,
                 amount: reward_amount.into(),

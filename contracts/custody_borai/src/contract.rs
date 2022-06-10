@@ -100,7 +100,7 @@ pub fn receive_cw20(
             let config: Config = read_config(deps.storage)?;
             if deps
                 .api
-                .canonical_address(&HumanAddr(contract_addr.to_string()))?
+                .canonical_address(&contract_addr)?
                 != config.collateral_token
             {
                 return Err(ContractError::Unauthorized {});
