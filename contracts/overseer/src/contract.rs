@@ -33,7 +33,7 @@ use moneymarket::overseer::{
 use cw20::Cw20HandleMsg;
 use moneymarket::querier::{deduct_tax, query_balance};
 
-pub const BLOCKS_PER_YEAR: u128 = 6300000;
+pub const BLOCKS_PER_YEAR: u64 = 6300000;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -42,6 +42,17 @@ pub fn init(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<InitResponse> {
+    let threshold_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100);
+    let target_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100);
+    let buffer_distribution_factor: Decimal256 = Decimal256::from_ratio(50u64, 100u64);
+    let anc_purchase_factor: Decimal256 = Decimal256::from_ratio(20u64, 100u64);
+    let epoch_period: u64 = 100u64;
+    let price_timeframe: u64 = 10000000u64;
+    let dyn_rate_epoch: u64 = 100u64;
+    let dyn_rate_maxchange: Decimal256 = Decimal256::percent(10u64);
+    let dyn_rate_yr_increase_expectation: Decimal256 = Decimal256::percent(10u64);
+    let dyn_rate_min: Decimal256 = Decimal256::from_ratio(5, BLOCKS_PER_YEAR * 100);
+    let dyn_rate_max: Decimal256 = Decimal256::from_ratio(15, BLOCKS_PER_YEAR * 100);
     store_config(
         deps.storage,
         &Config {
@@ -51,23 +62,23 @@ pub fn init(
             liquidation_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
             collector_contract: deps.api.canonical_address(&msg.collector_contract)?,
             stable_addr: deps.api.canonical_address(&msg.stable_addr)?,
-            epoch_period: msg.epoch_period,
-            threshold_deposit_rate: msg.threshold_deposit_rate,
-            target_deposit_rate: msg.target_deposit_rate,
-            buffer_distribution_factor: msg.buffer_distribution_factor,
-            anc_purchase_factor: msg.anc_purchase_factor,
-            price_timeframe: msg.price_timeframe,
+            epoch_period: epoch_period, //msg.epoch_period,
+            threshold_deposit_rate: threshold_deposit_rate, // msg.threshold_deposit_rate,
+            target_deposit_rate: target_deposit_rate, // msg.target_deposit_rate,
+            buffer_distribution_factor: buffer_distribution_factor, // msg.buffer_distribution_factor,
+            anc_purchase_factor: anc_purchase_factor,               // msg.anc_purchase_factor,
+            price_timeframe: price_timeframe,                       //  msg.price_timeframe,
         },
     )?;
 
     store_dynrate_config(
         deps.storage,
         &DynrateConfig {
-            dyn_rate_epoch: msg.dyn_rate_epoch,
-            dyn_rate_maxchange: msg.dyn_rate_maxchange,
-            dyn_rate_yr_increase_expectation: msg.dyn_rate_yr_increase_expectation,
-            dyn_rate_min: msg.dyn_rate_min,
-            dyn_rate_max: msg.dyn_rate_max,
+            dyn_rate_epoch: dyn_rate_epoch,
+            dyn_rate_maxchange: dyn_rate_maxchange,
+            dyn_rate_yr_increase_expectation: dyn_rate_yr_increase_expectation,
+            dyn_rate_min: dyn_rate_min,
+            dyn_rate_max: dyn_rate_max,
         },
     )?;
 

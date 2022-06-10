@@ -22,29 +22,29 @@ pub struct InstantiateMsg {
     /// reward distribution, and borrow
     pub stable_addr: HumanAddr,
     /// # of blocks per epoch period
-    pub epoch_period: u64,
+    pub epoch_period: Option<u64>,
     /// Distribute interest buffer to market contract,
     /// when deposit_rate < threshold_deposit_rate
-    pub threshold_deposit_rate: Decimal256,
+    pub threshold_deposit_rate: Option<Decimal256>,
     /// Target deposit rate.
     /// When current deposit rate is bigger than this,
     /// Custody contracts send rewards to interest buffer
-    pub target_deposit_rate: Decimal256,
+    pub target_deposit_rate: Option<Decimal256>,
     /// Ratio to be distributed from the interest buffer
-    pub buffer_distribution_factor: Decimal256,
+    pub buffer_distribution_factor: Option<Decimal256>,
     /// Ratio to be used for purchasing ANC token from the interest buffer
-    pub anc_purchase_factor: Decimal256,
+    pub anc_purchase_factor: Option<Decimal256>,
     /// Valid oracle price timeframe
-    pub price_timeframe: u64,
+    pub price_timeframe: Option<u64>,
     /// # of blocks per each dynamic rate change period
-    pub dyn_rate_epoch: u64,
+    pub dyn_rate_epoch: Option<u64>,
     /// maximum rate change during update
-    pub dyn_rate_maxchange: Decimal256,
+    pub dyn_rate_maxchange: Option<Decimal256>,
     /// amount of slack in yr change to trigger rate update
-    pub dyn_rate_yr_increase_expectation: Decimal256,
+    pub dyn_rate_yr_increase_expectation: Option<Decimal256>,
     /// clamps for dyn rate
-    pub dyn_rate_min: Decimal256,
-    pub dyn_rate_max: Decimal256,
+    pub dyn_rate_min: Option<Decimal256>,
+    pub dyn_rate_max: Option<Decimal256>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
