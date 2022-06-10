@@ -294,7 +294,7 @@ pub fn compute_interest_raw(
 
     let passed_blocks = Decimal256::from_uint256(block_height - state.last_interest_updated);
 
-    let interest_factor = passed_blocks * borrow_rate;
+    let interest_factor = passed_blocks * borrow_rate / Decimal256::from_ratio(1, BLOCKS_PER_YEAR);
     let interest_accrued = state.total_liabilities * interest_factor;
 
     state.global_interest_index =

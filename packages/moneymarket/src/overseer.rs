@@ -71,6 +71,7 @@ pub enum ExecuteMsg {
         dyn_rate_yr_increase_expectation: Option<Decimal256>,
         dyn_rate_min: Option<Decimal256>,
         dyn_rate_max: Option<Decimal256>,
+        market_contract: Option<HumanAddr>,
     },
     /// Create new custody contract for the given collateral token
     Whitelist {
