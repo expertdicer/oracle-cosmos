@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryExternalMsg",
+  "anyOf": [
+    {
+      "description": "Request bAsset reward amount",
+      "type": "object",
+      "required": [
+        "query_epoch_state"
+      ],
+      "properties": {
+        "query_epoch_state": {
+          "type": "object",
+          "required": [
+            "block_height",
+            "distributed_interest"
+          ],
+          "properties": {
+            "block_height": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "distributed_interest": {
+              "$ref": "#/definitions/Uint256"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Uint256": {
+      "type": "string"
+    }
+  }
+}
