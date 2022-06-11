@@ -351,7 +351,7 @@ pub fn query_borrow_rate(deps: Deps, env: Env) -> StdResult<Decimal256> {
 
     let balance: Cw20BalanceResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: config.collateral_contract,
+            contract_addr: config.stable_addr,
             msg: to_binary(&Cw20QueryMsg::Balance {
                 address: config.market_contract.clone(),
             })?,
