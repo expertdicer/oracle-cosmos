@@ -8,8 +8,9 @@ use crate::external::query::{
     MarketEpochStateResponse, MarketExternalMsg, OverseerExternalMsg,
 };
 use crate::msgs::{
-    BorrowerInfoResponse, CollateralBallanceResponse, ConfigResponse, DepositRateResponse, ClaimableResponse,
-    ExecuteMsg, InstantiateMsg, OraiBalanceResponse, QueryMsg, TotalBallanceDepositResponse,
+    BorrowerInfoResponse, ClaimableResponse, CollateralBallanceResponse, ConfigResponse,
+    DepositRateResponse, ExecuteMsg, InstantiateMsg, OraiBalanceResponse, QueryMsg,
+    TotalBallanceDepositResponse,
 };
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_bignumber::Uint256;
@@ -17,8 +18,8 @@ use cosmwasm_std::{
     to_binary, BankQuery, Binary, Deps, DepsMut, Env, HandleResponse, HumanAddr, InitResponse,
     MessageInfo, QueryRequest, StdResult, WasmQuery,
 };
-use cw20::{Cw20QueryMsg, BalanceResponse as Cw20BalanceResponse};
-use moneymarket::staking::{ConfigResponse as StakingConfigResponse};
+use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
+use moneymarket::staking::ConfigResponse as StakingConfigResponse;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn init(
@@ -155,8 +156,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::OraiBalance { user } => to_binary(&query_orai_ballance(deps, env, user)?),
         QueryMsg::SOraiBalance { user } => to_binary(&query_sorai_ballance(deps, env, user)?),
-        QueryMsg::Reward{ user } => to_binary(&query_reward(deps, env, user)?),
-        QueryMsg::Apr{} => to_binary(&query_apr(deps, env)?),
+        QueryMsg::Reward { user } => to_binary(&query_reward(deps, env, user)?),
+        QueryMsg::Apr {} => to_binary(&query_apr(deps, env)?),
     }
 }
 
@@ -208,7 +209,7 @@ fn query_total_ballance_deposit(
 
     let epochstate: MarketEpochStateResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: config.overseer_contract,
+            contract_addr: config.market_contract,
             msg: to_binary(&MarketExternalMsg::EpochState {
                 block_height: env.block.height,
                 distributed_interest: Uint256::zero(),
@@ -284,22 +285,17 @@ pub fn query_sorai_ballance(deps: Deps, _env: Env, user: HumanAddr) -> StdResult
     let balance: Cw20BalanceResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: config.collateral_contract,
-            msg: to_binary(&Cw20QueryMsg::Balance {
-                address: user,
-            })?,
+            msg: to_binary(&Cw20QueryMsg::Balance { address: user })?,
         }))?;
     Ok(balance.balance.into())
 }
 
 pub fn query_reward(deps: Deps, _env: Env, user: HumanAddr) -> StdResult<Uint256> {
     let config = read_config(deps.storage)?;
-    let balance: ClaimableResponse =
-        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: config.staking_contract,
-            msg: to_binary(&moneymarket::staking::QueryMsg::Claimable {
-                user: user,
-            })?,
-        }))?;
+    let balance: ClaimableResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: config.staking_contract,
+        msg: to_binary(&moneymarket::staking::QueryMsg::Claimable { user: user })?,
+    }))?;
     Ok(balance.reward.into())
 }
 
