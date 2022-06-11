@@ -5,7 +5,7 @@ use cosmwasm_std::entry_point;
 
 use crate::external::query::{
     BalanceResponse, BorrowerResponse, CustodyExternalMsg, EpochStateResponse,
-    MarketEpochStateResponse, MarketExternalMsg, OverseerExternalMsg,
+    InterestExternalQueryMsg, MarketEpochStateResponse, MarketExternalMsg, OverseerExternalMsg,
 };
 use crate::msgs::{
     BorrowerInfoResponse, ClaimableResponse, CollateralBallanceResponse, ConfigResponse,
@@ -19,6 +19,7 @@ use cosmwasm_std::{
     MessageInfo, QueryRequest, StdResult, WasmQuery,
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
+use moneymarket::interest_model::BorrowRateResponse;
 use moneymarket::market::StateResponse as MarketStateResponse;
 use moneymarket::staking::ConfigResponse as StakingConfigResponse;
 
@@ -339,4 +340,35 @@ pub fn query_total_deposit_and_borrow(
         deposit: deposit,
         borrow: borrow,
     })
+}
+
+pub fn query_borrow_rate(deps: Deps, env: Env) -> StdResult<Decimal256> {
+    let config = read_config(deps.storage)?;
+
+    let balance: Cw20BalanceResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: config.collateral_contract,
+            msg: to_binary(&Cw20QueryMsg::Balance {
+                address: config.market_contract.clone(),
+            })?,
+        }))?;
+
+    let state: MarketStateResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: config.market_contract.clone(),
+        msg: to_binary(&MarketExternalMsg::State {
+            block_height: Some(env.block.height),
+        })?,
+    }))?;
+
+    let borrow_rate: BorrowRateResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: config.interest_contract,
+            msg: to_binary(&InterestExternalQueryMsg::BorrowRate {
+                market_balance: balance.balance.into(),
+                total_liabilities: state.total_liabilities,
+                total_reserves: Decimal256::zero(),
+            })?,
+        }))?;
+
+    Ok(borrow_rate.rate)
 }

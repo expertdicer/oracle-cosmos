@@ -35,6 +35,17 @@ pub enum CustodyExternalMsg {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum InterestExternalQueryMsg {
+    /// Request bAsset reward amount
+    BorrowRate {
+        market_balance: Uint256,
+        total_liabilities: Decimal256,
+        total_reserves: Decimal256,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct EpochStateResponse {
     pub deposit_rate: Decimal256,
     pub prev_aterra_supply: Uint256,
