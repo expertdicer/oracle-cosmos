@@ -38,6 +38,10 @@ pub enum ExecuteMsg {
     UpdateUserReward {
         user: HumanAddr,
     },
+    Withdraw {
+        recipient: Option<HumanAddr>,
+        amount: Uint256,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

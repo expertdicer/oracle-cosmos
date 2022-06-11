@@ -65,6 +65,9 @@ pub fn handle(
         ExecuteMsg::StakingOrai {} => staking_orai(deps, _env, info),
         ExecuteMsg::ClaimRewards { recipient } => handle_claim_reward(deps, _env, info, recipient),
         ExecuteMsg::UpdateUserReward { user } => handle_update_reward_index(deps, _env, info, user),
+        ExecuteMsg::Withdraw { recipient, amount } => {
+            handle_withdraw(deps, _env, info, recipient, amount)
+        }
     }
 }
 
@@ -310,10 +313,17 @@ pub fn handle_withdraw(
     deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
+    recipient: Option<HumanAddr>,
     amount: Uint256,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    let sender_raw = deps.api.canonical_address(&_info.sender)?;
+
+    let recipient = if let Some(recipient) = recipient {
+        recipient
+    } else {
+        _info.sender.clone()
+    };
+    let sender_raw = deps.api.canonical_address(&recipient)?;
     if read_user_reward_elem(deps.storage, &sender_raw).is_err() {
         store_user_reward_elem(
             deps.storage,
@@ -330,7 +340,7 @@ pub fn handle_withdraw(
     let balance: BalanceResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: config.asset_token.clone(),
         msg: to_binary(&Cw20QueryMsg::Balance {
-            address: _info.sender.clone(),
+            address: recipient.clone(),
         })?,
     }))?;
 
@@ -365,7 +375,7 @@ pub fn handle_withdraw(
             }),
             CosmosMsg::Bank(BankMsg::Send {
                 from_address: _env.contract.address.clone(),
-                to_address: _info.sender,
+                to_address: recipient.clone(),
                 amount: vec![Coin {
                     denom: config.native_token_denom,
                     amount: amount.clone().into(),
