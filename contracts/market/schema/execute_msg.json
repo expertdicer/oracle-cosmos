@@ -148,7 +148,7 @@
       }
     },
     {
-      "description": "Execute epoch operations 1. send reserve to collector contract 2. update anc_emission_rate state",
+      "description": "Execute epoch operations 1. send reserve to collector contract 2. update orchai_epb_rate state",
       "type": "object",
       "required": [
         "execute_epoch_operations"

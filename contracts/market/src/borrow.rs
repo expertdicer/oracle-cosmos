@@ -210,9 +210,9 @@ pub fn claim_rewards(
 
     let messages: Vec<CosmosMsg> = if !claim_amount.is_zero() {
         vec![CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: deps.api.human_address(&config.distributor_contract)?,
+            contract_addr: deps.api.human_address(&config.orchai_token)?,
             send: vec![],
-            msg: to_binary(&FaucetExecuteMsg::Spend {
+            msg: to_binary(&Cw20HandleMsg::Transfer {
                 recipient: if let Some(to) = to { to } else { borrower },
                 amount: claim_amount.into(),
             })?,
@@ -337,9 +337,8 @@ pub fn compute_reward(state: &mut State, block_height: u64) {
     }
 
     let passed_blocks = Decimal256::from_uint256(block_height - state.last_reward_updated);
-    let reward_accrued = passed_blocks * state.anc_emission_rate;
+    let reward_accrued = passed_blocks * state.orchai_epb_rate;
     let borrow_amount = state.total_liabilities / state.global_interest_index;
-
     if !reward_accrued.is_zero() && !borrow_amount.is_zero() {
         state.global_reward_index += reward_accrued / borrow_amount;
     }

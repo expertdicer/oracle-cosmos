@@ -31,7 +31,7 @@ fn proper_initialization() {
         owner_addr: HumanAddr("owner".to_string()),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -129,7 +129,7 @@ fn proper_initialization() {
     assert_eq!(Decimal256::zero(), state.total_reserves);
     assert_eq!(mock_env().block.height, state.last_interest_updated);
     assert_eq!(Decimal256::one(), state.global_interest_index);
-    assert_eq!(Decimal256::one(), state.anc_emission_rate);
+    assert_eq!(Decimal256::one(), state.orchai_epb_rate);
     assert_eq!(Uint256::zero(), state.prev_aterra_supply);
     assert_eq!(Decimal256::one(), state.prev_exchange_rate);
 }
@@ -147,7 +147,7 @@ fn update_config() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -249,7 +249,7 @@ fn deposit_stable_huge_amount() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -405,7 +405,7 @@ fn deposit_stable() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -514,7 +514,7 @@ fn deposit_stable() {
             total_reserves: Decimal256::zero(),
             last_interest_updated: mock_env().block.height,
             last_reward_updated: mock_env().block.height,
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::from(1000000u64),
             prev_exchange_rate: Decimal256::one(),
         }
@@ -553,7 +553,7 @@ fn deposit_stable() {
             last_reward_updated: mock_env().block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::from_ratio(1u64, 2u64),
         },
@@ -603,7 +603,7 @@ fn deposit_stable() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::from_ratio(1u64, 2u64),
         },
@@ -630,7 +630,7 @@ fn deposit_stable() {
             total_reserves: Decimal256::from_uint256(550000u128),
             last_interest_updated: env.block.height,
             last_reward_updated: env.block.height,
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::from(INITIAL_DEPOSIT_AMOUNT + 1818181),
             prev_exchange_rate: Decimal256::from_ratio(55u64, 100u64),
         }
@@ -648,7 +648,7 @@ fn redeem_stable() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -767,7 +767,7 @@ fn redeem_stable() {
             last_reward_updated: mock_env().block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::from(2000000u64),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -840,7 +840,7 @@ fn borrow_stable() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -893,7 +893,7 @@ fn borrow_stable() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -958,7 +958,7 @@ fn borrow_stable() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::from_uint256(2u128),
             global_reward_index: Decimal256::from_str("0.0001").unwrap(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         }
@@ -984,7 +984,7 @@ fn borrow_stable() {
             last_reward_updated: env.block.height + 1u64,
             global_interest_index: Decimal256::from_str("2.02").unwrap(),
             global_reward_index: Decimal256::from_str("0.0001008").unwrap(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         }
@@ -1085,7 +1085,7 @@ fn assert_max_borrow_factor() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::percent(1),
     };
 
@@ -1137,7 +1137,7 @@ fn assert_max_borrow_factor() {
             last_reward_updated: mock_env().block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -1195,7 +1195,7 @@ fn repay_stable() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -1248,7 +1248,7 @@ fn repay_stable() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -1378,7 +1378,7 @@ fn repay_stable_from_liquidation() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -1431,7 +1431,7 @@ fn repay_stable_from_liquidation() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -1549,7 +1549,7 @@ fn claim_rewards() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -1602,7 +1602,7 @@ fn claim_rewards() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -1680,7 +1680,7 @@ fn execute_epoch_operations() {
         owner_addr: "owner".to_string(),
         stable_denom: "uusd".to_string(),
         aterra_code_id: 123u64,
-        anc_emission_rate: Decimal256::one(),
+        orchai_epb_rate: Decimal256::one(),
         max_borrow_factor: Decimal256::one(),
     };
 
@@ -1733,7 +1733,7 @@ fn execute_epoch_operations() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -1780,7 +1780,7 @@ fn execute_epoch_operations() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::from_uint256(2u64),
             global_reward_index: Decimal256::from_str("0.0001").unwrap(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         }
@@ -1807,7 +1807,7 @@ fn execute_epoch_operations() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -1837,7 +1837,7 @@ fn execute_epoch_operations() {
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::from_uint256(2u64),
             global_reward_index: Decimal256::from_str("0.0001").unwrap(),
-            anc_emission_rate: Decimal256::one(),
+            orchai_epb_rate: Decimal256::one(),
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         }
@@ -1858,7 +1858,7 @@ fn execute_epoch_operations() {
 //         owner_addr: "owner".to_string(),
 //         stable_denom: "uusd".to_string(),
 //         aterra_code_id: 123u64,
-//         anc_emission_rate: Decimal256::one(),
+//         orchai_epb_rate: Decimal256::one(),
 //         max_borrow_factor: Decimal256::one(),
 //     };
 
@@ -1916,7 +1916,7 @@ fn execute_epoch_operations() {
 //             last_reward_updated: env.block.height,
 //             global_interest_index: Decimal256::from_str("1.000005078160215988").unwrap(),
 //             global_reward_index: Decimal256::from_str("119531.277425251814227128").unwrap(),
-//             anc_emission_rate: Decimal256::from_str("980001.99").unwrap(),
+//             orchai_epb_rate: Decimal256::from_str("980001.99").unwrap(),
 //             prev_aterra_supply: Uint256::from(1000000001000000u128),
 //             prev_exchange_rate: Decimal256::from_str("1.0000022").unwrap(),
 //         },

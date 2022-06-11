@@ -43,7 +43,7 @@ pub fn query_borrow_limit(
     Ok(borrow_limit)
 }
 
-pub fn query_anc_emission_rate(
+pub fn query_orchai_epb_rate(
     deps: Deps,
     distribution_model: HumanAddr,
     deposit_rate: Decimal256,
@@ -51,7 +51,7 @@ pub fn query_anc_emission_rate(
     threshold_deposit_rate: Decimal256,
     current_emission_rate: Decimal256,
 ) -> StdResult<AncEmissionRateResponse> {
-    let anc_emission_rate: AncEmissionRateResponse =
+    let orchai_epb_rate: AncEmissionRateResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: distribution_model,
             msg: to_binary(&DistributionQueryMsg::AncEmissionRate {
@@ -62,7 +62,7 @@ pub fn query_anc_emission_rate(
             })?,
         }))?;
 
-    Ok(anc_emission_rate)
+    Ok(orchai_epb_rate)
 }
 
 pub fn query_target_deposit_rate(deps: Deps, overseer_contract: HumanAddr) -> StdResult<Decimal256> {

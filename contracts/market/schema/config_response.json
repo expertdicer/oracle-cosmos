@@ -9,6 +9,7 @@
     "distributor_contract",
     "interest_model",
     "max_borrow_factor",
+    "orchai_token",
     "overseer_contract",
     "owner_addr",
     "stable_addr"
@@ -31,6 +32,9 @@
     },
     "max_borrow_factor": {
       "$ref": "#/definitions/Decimal256"
+    },
+    "orchai_token": {
+      "type": "string"
     },
     "overseer_contract": {
       "type": "string"

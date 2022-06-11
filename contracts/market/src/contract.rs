@@ -69,6 +69,7 @@ pub fn init(
             collector_contract: CanonicalAddr::from(vec![]),
             distributor_contract: CanonicalAddr::from(vec![]),
             stable_addr: deps.api.canonical_address(&msg.stable_addr)?,
+            orchai_token: deps.api.canonical_address(&msg.orchai_token)?,
             max_borrow_factor: msg.max_borrow_factor,
         },
     )?;
@@ -82,7 +83,7 @@ pub fn init(
             last_reward_updated: env.block.height,
             global_interest_index: Decimal256::one(),
             global_reward_index: Decimal256::zero(),
-            anc_emission_rate: msg.anc_emission_rate,
+            orchai_epb_rate: msg.orchai_epb_rate,
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
         },
@@ -298,14 +299,14 @@ pub fn register_contracts(
     distributor_contract: HumanAddr,
 ) -> Result<HandleResponse, ContractError> {
     let mut config: Config = read_config(deps.storage)?;
-    if config.overseer_contract != CanonicalAddr::from(vec![])
-        || config.interest_model != CanonicalAddr::from(vec![])
-        || config.distribution_model != CanonicalAddr::from(vec![])
-        || config.collector_contract != CanonicalAddr::from(vec![])
-        || config.distributor_contract != CanonicalAddr::from(vec![])
-    {
-        return Err(ContractError::Unauthorized {});
-    }
+    // if config.overseer_contract != CanonicalAddr::from(vec![])
+    //     || config.interest_model != CanonicalAddr::from(vec![])
+    //     || config.distribution_model != CanonicalAddr::from(vec![])
+    //     || config.collector_contract != CanonicalAddr::from(vec![])
+    //     || config.distributor_contract != CanonicalAddr::from(vec![])
+    // {
+    //     return Err(ContractError::Unauthorized {});
+    // }
 
     config.overseer_contract = deps.api.canonical_address(&overseer_contract)?;
     config.interest_model = deps.api.canonical_address(&interest_model)?;
@@ -395,7 +396,7 @@ pub fn execute_epoch_operations(
 
     let mut state: State = read_state(deps.storage)?;
 
-    // Compute interest and reward before updating anc_emission_rate
+    // Compute interest and reward before updating orchai_epb_rate
     let aterra_supply = query_supply(
         deps.as_ref(),
         deps.api.human_address(&config.aterra_contract)?,
@@ -453,7 +454,7 @@ pub fn execute_epoch_operations(
         attributes: vec![
             attr("action", "execute_epoch_operations"),
             attr("total_reserves", total_reserves),
-            attr("anc_emission_rate", state.anc_emission_rate.to_string()),
+            attr("orchai_epb_rate", state.orchai_epb_rate.to_string()),
         ],
         messages: messages,
         data: None,
@@ -507,6 +508,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
             .human_address(&config.distributor_contract)?
             .to_string(),
         stable_addr: deps.api.human_address(&config.stable_addr)?.to_string(),
+        orchai_token: deps.api.human_address(&config.orchai_token)?.to_string(),
         max_borrow_factor: config.max_borrow_factor,
     })
 }
@@ -547,7 +549,7 @@ pub fn query_state(deps: Deps, env: Env, block_height: Option<u64>) -> StdResult
         last_reward_updated: state.last_reward_updated,
         global_interest_index: state.global_interest_index,
         global_reward_index: state.global_reward_index,
-        anc_emission_rate: state.anc_emission_rate,
+        orchai_epb_rate: state.orchai_epb_rate,
         prev_aterra_supply: state.prev_aterra_supply,
         prev_exchange_rate: state.prev_exchange_rate,
     })

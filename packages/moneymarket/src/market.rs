@@ -16,9 +16,10 @@ pub struct InstantiateMsg {
     /// Anchor token code ID used to instantiate
     pub orchai_code_id: u64,
     /// Anchor token distribution speed
-    pub anc_emission_rate: Decimal256,
+    pub orchai_epb_rate: Decimal256,
     /// Maximum allowed borrow rate over deposited stable balance
     pub max_borrow_factor: Decimal256,
+    pub orchai_token: HumanAddr,
     // pub hook_msg: HookMsg,
 }
 
@@ -83,7 +84,7 @@ pub enum ExecuteMsg {
 
     /// Execute epoch operations
     /// 1. send reserve to collector contract
-    /// 2. update anc_emission_rate state
+    /// 2. update orchai_epb_rate state
     ExecuteEpochOperations {
         deposit_rate: Decimal256,
         target_deposit_rate: Decimal256,
@@ -230,6 +231,7 @@ pub struct ConfigResponse {
     pub collector_contract: String,
     pub distributor_contract: String,
     pub stable_addr: String,
+    pub orchai_token: String,
     pub max_borrow_factor: Decimal256,
 }
 
@@ -242,7 +244,7 @@ pub struct StateResponse {
     pub last_reward_updated: u64,
     pub global_interest_index: Decimal256,
     pub global_reward_index: Decimal256,
-    pub anc_emission_rate: Decimal256,
+    pub orchai_epb_rate: Decimal256,
     pub prev_aterra_supply: Uint256,
     pub prev_exchange_rate: Decimal256,
 }
