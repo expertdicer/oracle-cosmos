@@ -148,6 +148,28 @@
           "type": "object"
         }
       }
+    },
+    {
+      "type": "object",
+      "required": [
+        "borrow_rate"
+      ],
+      "properties": {
+        "borrow_rate": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "total_deposit_and_borrow"
+      ],
+      "properties": {
+        "total_deposit_and_borrow": {
+          "type": "object"
+        }
+      }
     }
   ],
   "definitions": {

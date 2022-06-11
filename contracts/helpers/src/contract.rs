@@ -160,6 +160,10 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::SOraiBalance { user } => to_binary(&query_sorai_ballance(deps, env, user)?),
         QueryMsg::Reward { user } => to_binary(&query_reward(deps, env, user)?),
         QueryMsg::Apr {} => to_binary(&query_apr(deps, env)?),
+        QueryMsg::BorrowRate {} => to_binary(&query_borrow_rate(deps, env)?),
+        QueryMsg::TotalDepositAndBorrow {} => {
+            to_binary(&query_total_deposit_and_borrow(deps, env)?)
+        }
     }
 }
 

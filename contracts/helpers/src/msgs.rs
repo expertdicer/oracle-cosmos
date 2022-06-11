@@ -48,6 +48,8 @@ pub enum QueryMsg {
     SOraiBalance { user: HumanAddr },
     Reward { user: HumanAddr },
     Apr {},
+    BorrowRate {},
+    TotalDepositAndBorrow {},
 }
 
 // We define a custom struct for each query response
