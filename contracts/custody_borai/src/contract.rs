@@ -35,7 +35,7 @@ pub fn init(
         market_contract: deps.api.canonical_address(&msg.market_contract)?,
         reward_contract: deps.api.canonical_address(&msg.reward_contract)?,
         liquidation_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
-        swap_contract: deps.api.canonical_address(&msg.liquidation_contract)?,
+        swap_contract: deps.api.canonical_address(&msg.swap_contract)?,
         stable_addr: deps.api.canonical_address(&msg.stable_addr)?,
         basset_info: msg.basset_info,
     };

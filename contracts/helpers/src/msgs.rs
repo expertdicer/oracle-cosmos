@@ -44,7 +44,11 @@ pub enum QueryMsg {
     TotalBallanceDeposit { user: HumanAddr },
     CollateralBalance { user: HumanAddr },
     BorrowerInfo { borrower: HumanAddr },
-    OraiBallance { user: HumanAddr },
+    OraiBalance { user: HumanAddr },
+    SOraiBalance { user: HumanAddr}, 
+    Reward { user: HumanAddr},
+    Apr {},
+
 }
 
 // We define a custom struct for each query response
@@ -98,4 +102,17 @@ pub struct OraiBalanceResponse {
     /// Always returns a Coin with the requested denom.
     /// This may be of 0 amount if no such funds.
     pub amount: Coin,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct SOraiBalanceResponse {
+    /// Always returns a Coin with the requested denom.
+    /// This may be of 0 amount if no such funds.
+    pub amount: Uint256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct ClaimableResponse {
+    pub reward: Uint256,
 }
