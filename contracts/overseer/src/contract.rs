@@ -42,17 +42,17 @@ pub fn init(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<InitResponse> {
-    let threshold_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100);
-    let target_deposit_rate: Decimal256 = Decimal256::from_ratio(15u64, BLOCKS_PER_YEAR * 100);
-    let buffer_distribution_factor: Decimal256 = Decimal256::from_ratio(50u64, 100u64);
-    let anc_purchase_factor: Decimal256 = Decimal256::from_ratio(20u64, 100u64);
-    let epoch_period: u64 = 1u64;
+    let threshold_deposit_rate: Decimal256 = Decimal256::from_ratio(1500u64, BLOCKS_PER_YEAR * 100);
+    let target_deposit_rate: Decimal256 = Decimal256::from_ratio(1500u64, BLOCKS_PER_YEAR * 100);
+    let buffer_distribution_factor: Decimal256 = Decimal256::percent(100u64);
+    let anc_purchase_factor: Decimal256 = Decimal256::percent(15u64);
+    let epoch_period: u64 = 5u64;
     let price_timeframe: u64 = 10000000u64;
-    let dyn_rate_epoch: u64 = 1u64;
-    let dyn_rate_maxchange: Decimal256 = Decimal256::percent(10u64);
-    let dyn_rate_yr_increase_expectation: Decimal256 = Decimal256::percent(10u64);
-    let dyn_rate_min: Decimal256 = Decimal256::from_ratio(5, BLOCKS_PER_YEAR * 100);
-    let dyn_rate_max: Decimal256 = Decimal256::from_ratio(15, BLOCKS_PER_YEAR * 100);
+    let dyn_rate_epoch: u64 = 5u64;
+    let dyn_rate_maxchange: Decimal256 = Decimal256::percent(100u64);
+    let dyn_rate_yr_increase_expectation: Decimal256 = Decimal256::percent(0u64);
+    let dyn_rate_min: Decimal256 = Decimal256::from_ratio(0, BLOCKS_PER_YEAR * 100);
+    let dyn_rate_max: Decimal256 = Decimal256::from_ratio(1500, BLOCKS_PER_YEAR * 100);
     store_config(
         deps.storage,
         &Config {
@@ -258,11 +258,7 @@ pub fn update_config(
     let mut config: Config = read_config(deps.storage)?;
     let mut dynrate_config: DynrateConfig = read_dynrate_config(deps.storage)?;
 
-    if deps
-        .api
-        .canonical_address(&info.sender)?
-        != config.owner_addr
-    {
+    if deps.api.canonical_address(&info.sender)? != config.owner_addr {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -360,9 +356,7 @@ pub fn register_whitelist(
         &WhitelistElem {
             name: name.to_string(),
             symbol: symbol.to_string(),
-            custody_contract: deps
-                .api
-                .canonical_address(&custody_contract)?,
+            custody_contract: deps.api.canonical_address(&custody_contract)?,
             max_ltv,
         },
     )?;
@@ -389,24 +383,16 @@ pub fn update_whitelist(
     max_ltv: Option<Decimal256>,
 ) -> Result<HandleResponse, ContractError> {
     let config: Config = read_config(deps.storage)?;
-    if deps
-        .api
-        .canonical_address(&info.sender)?
-        != config.owner_addr
-    {
+    if deps.api.canonical_address(&info.sender)? != config.owner_addr {
         return Err(ContractError::Unauthorized {});
     }
 
-    let collateral_token_raw = deps
-        .api
-        .canonical_address(&collateral_token)?;
+    let collateral_token_raw = deps.api.canonical_address(&collateral_token)?;
     let mut whitelist_elem: WhitelistElem =
         read_whitelist_elem(deps.storage, &collateral_token_raw)?;
 
     if let Some(custody_contract) = custody_contract {
-        whitelist_elem.custody_contract = deps
-            .api
-            .canonical_address(&custody_contract)?;
+        whitelist_elem.custody_contract = deps.api.canonical_address(&custody_contract)?;
     }
 
     if let Some(max_ltv) = max_ltv {
@@ -580,60 +566,55 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<HandleRespons
 
     // Distribute Interest Buffer to depositor
     // Only executed when deposit rate < threshold_deposit_rate
-    let mut distributed_interest: Uint256 = Uint256::zero();
-    if deposit_rate < config.threshold_deposit_rate {
-        // missing_deposit_rate(_per_block)
-        let missing_deposit_rate = config.threshold_deposit_rate - deposit_rate;
-        let prev_deposits = state.prev_aterra_supply * state.prev_exchange_rate;
+    // let mut distributed_interest: Uint256 = Uint256::zero();
+    // if deposit_rate < config.threshold_deposit_rate {
+    //     // missing_deposit_rate(_per_block)
+    //     let missing_deposit_rate = config.threshold_deposit_rate - deposit_rate;
+    //     let prev_deposits = state.prev_aterra_supply * state.prev_exchange_rate;
 
-        // missing_deposits = prev_deposits * missing_deposit_rate(_per_block) * blocks
-        let missing_deposits = prev_deposits * blocks * missing_deposit_rate;
-        let distribution_buffer = interest_buffer * config.buffer_distribution_factor;
+    //     // missing_deposits = prev_deposits * missing_deposit_rate(_per_block) * blocks
+    //     let missing_deposits = prev_deposits * blocks * missing_deposit_rate;
+    //     let distribution_buffer = interest_buffer * config.buffer_distribution_factor;
 
-        // When there was not enough deposits happens,
-        // distribute interest to market contract
-        distributed_interest = std::cmp::min(missing_deposits, distribution_buffer);
-        interest_buffer = interest_buffer - distributed_interest;
+    //     // When there was not enough deposits happens,
+    //     // distribute interest to market contract
+    //     distributed_interest = std::cmp::min(missing_deposits, distribution_buffer);
+    //     interest_buffer = interest_buffer - distributed_interest;
 
-        // if !distributed_interest.is_zero() {
-        //     // deduct tax
-        //     distributed_interest = Uint256::from(
-        //         deduct_tax(
-        //             deps.as_ref(),
-        //             Coin {
-        //                 denom: config.stable_denom.to_string(),
-        //                 amount: distributed_interest.into(),
-        //             },
-        //         )?
-        //         .amount,
-        //     );
+    //     if !distributed_interest.is_zero() {
+    //         // deduct tax
+    //         distributed_interest =
+    //             Uint256::from(deduct_tax(deps.as_ref(), distributed_interest.into())?);
 
-        //     // Send some portion of interest buffer to Market contract
-        //     messages.push(CosmosMsg::Bank(BankMsg::Send {
-        //         from_address: env.contract.address.clone(),
-        //         to_address: market_contract,
-        //         amount: vec![Coin {
-        //             denom: config.stable_denom,
-        //             amount: distributed_interest.into(),
-        //         }],
-        //     }));
-        // }
+    //         // Send some portion of interest buffer to Market contract
+    //         messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+    //             contract_addr: deps.api.human_address(&config.stable_addr)?,
+    //             send: vec![],
+    //             msg: to_binary(&Cw20HandleMsg::Transfer {
+    //                 recipient: market_contract,
+    //                 amount: distributed_interest.into(),
+    //             })?,
+    //         }));
+    //     }
+    // }
 
-        if !distributed_interest.is_zero() {
-            // deduct tax
-            distributed_interest =
-                Uint256::from(deduct_tax(deps.as_ref(), distributed_interest.into())?);
+    // Distribute all reward from proof of stake for market
+    let mut distributed_interest: Uint256 = interest_buffer.clone();
+    interest_buffer = interest_buffer - distributed_interest;
+    if !distributed_interest.is_zero() {
+        // deduct tax
+        distributed_interest =
+            Uint256::from(deduct_tax(deps.as_ref(), distributed_interest.into())?);
 
-            // Send some portion of interest buffer to Market contract
-            messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: deps.api.human_address(&config.stable_addr)?,
-                send: vec![],
-                msg: to_binary(&Cw20HandleMsg::Transfer {
-                    recipient: market_contract,
-                    amount: distributed_interest.into(),
-                })?,
-            }));
-        }
+        // Send some portion of interest buffer to Market contract
+        messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: deps.api.human_address(&config.stable_addr)?,
+            send: vec![],
+            msg: to_binary(&Cw20HandleMsg::Transfer {
+                recipient: market_contract,
+                amount: distributed_interest.into(),
+            })?,
+        }));
     }
 
     // Execute DistributeRewards
@@ -790,21 +771,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             start_after,
             limit,
         )?),
-        QueryMsg::Collaterals { borrower } => to_binary(&query_collaterals(
-            deps,
-            borrower,
-        )?),
+        QueryMsg::Collaterals { borrower } => to_binary(&query_collaterals(deps, borrower)?),
         QueryMsg::AllCollaterals { start_after, limit } => {
             to_binary(&query_all_collaterals(deps, start_after, limit)?)
         }
         QueryMsg::BorrowLimit {
             borrower,
             block_time,
-        } => to_binary(&query_borrow_limit(
-            deps,
-            borrower,
-            block_time,
-        )?),
+        } => to_binary(&query_borrow_limit(deps, borrower, block_time)?),
         QueryMsg::DynrateState {} => to_binary(&query_dynrate_state(deps)?),
     }
 }
@@ -863,9 +837,7 @@ pub fn query_whitelist(
                 name: whitelist_elem.name,
                 symbol: whitelist_elem.symbol,
                 max_ltv: whitelist_elem.max_ltv,
-                custody_contract: deps
-                    .api
-                    .human_address(&whitelist_elem.custody_contract)?,
+                custody_contract: deps.api.human_address(&whitelist_elem.custody_contract)?,
                 collateral_token: collateral_token,
             }],
         })

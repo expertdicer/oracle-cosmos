@@ -305,18 +305,18 @@ pub fn compute_interest_raw(
     let effective_deposit_rate = exchange_rate / state.prev_exchange_rate;
     let deposit_rate = (effective_deposit_rate - Decimal256::one()) / passed_blocks;
 
-    if deposit_rate > target_deposit_rate {
-        // excess_deposit_rate(_per_block)
-        let excess_deposit_rate = deposit_rate - target_deposit_rate;
-        let prev_deposits =
-            Decimal256::from_uint256(state.prev_aterra_supply * state.prev_exchange_rate);
+    // if deposit_rate > target_deposit_rate {
+    //     // excess_deposit_rate(_per_block)
+    //     let excess_deposit_rate = deposit_rate - target_deposit_rate;
+    //     let prev_deposits =
+    //         Decimal256::from_uint256(state.prev_aterra_supply * state.prev_exchange_rate);
 
-        // excess_yield = prev_deposits * excess_deposit_rate(_per_block) * blocks
-        let excess_yield = prev_deposits * passed_blocks * excess_deposit_rate;
+    //     // excess_yield = prev_deposits * excess_deposit_rate(_per_block) * blocks
+    //     let excess_yield = prev_deposits * passed_blocks * excess_deposit_rate;
 
-        state.total_reserves += excess_yield;
-        exchange_rate = compute_exchange_rate_raw(state, aterra_supply, balance);
-    }
+    //     state.total_reserves += excess_yield;
+    //     exchange_rate = compute_exchange_rate_raw(state, aterra_supply, balance);
+    // }
 
     state.prev_aterra_supply = aterra_supply;
     state.prev_exchange_rate = exchange_rate;
@@ -326,7 +326,7 @@ pub fn compute_interest_raw(
 /// Compute new interest and apply to liability
 pub(crate) fn compute_borrower_interest(state: &State, liability: &mut BorrowerInfo) {
     liability.loan_amount =
-        liability.loan_amount * state.global_interest_index / liability.interest_index;
+        liability.loan_amount * (state.global_interest_index / liability.interest_index);
     liability.interest_index = state.global_interest_index;
 }
 
