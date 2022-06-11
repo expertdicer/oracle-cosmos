@@ -23,6 +23,9 @@ pub enum MarketExternalMsg {
         borrower: HumanAddr,
         block_height: Option<u64>,
     },
+    State {
+        block_height: Option<u64>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

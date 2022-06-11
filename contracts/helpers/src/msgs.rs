@@ -45,10 +45,9 @@ pub enum QueryMsg {
     CollateralBalance { user: HumanAddr },
     BorrowerInfo { borrower: HumanAddr },
     OraiBalance { user: HumanAddr },
-    SOraiBalance { user: HumanAddr}, 
-    Reward { user: HumanAddr},
+    SOraiBalance { user: HumanAddr },
+    Reward { user: HumanAddr },
     Apr {},
-
 }
 
 // We define a custom struct for each query response
@@ -115,4 +114,10 @@ pub struct SOraiBalanceResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ClaimableResponse {
     pub reward: Uint256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct DepositAndBorrowResponse {
+    pub deposit: Uint256,
+    pub borrow: Decimal256,
 }

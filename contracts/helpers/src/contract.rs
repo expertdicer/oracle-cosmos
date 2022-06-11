@@ -9,8 +9,8 @@ use crate::external::query::{
 };
 use crate::msgs::{
     BorrowerInfoResponse, ClaimableResponse, CollateralBallanceResponse, ConfigResponse,
-    DepositRateResponse, ExecuteMsg, InstantiateMsg, OraiBalanceResponse, QueryMsg,
-    TotalBallanceDepositResponse,
+    DepositAndBorrowResponse, DepositRateResponse, ExecuteMsg, InstantiateMsg, OraiBalanceResponse,
+    QueryMsg, TotalBallanceDepositResponse,
 };
 use cosmwasm_bignumber::Decimal256;
 use cosmwasm_bignumber::Uint256;
@@ -19,6 +19,7 @@ use cosmwasm_std::{
     MessageInfo, QueryRequest, StdResult, WasmQuery,
 };
 use cw20::{BalanceResponse as Cw20BalanceResponse, Cw20QueryMsg};
+use moneymarket::market::StateResponse as MarketStateResponse;
 use moneymarket::staking::ConfigResponse as StakingConfigResponse;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -307,4 +308,35 @@ pub fn query_apr(deps: Deps, _env: Env) -> StdResult<Decimal256> {
             msg: to_binary(&moneymarket::staking::QueryMsg::QueryConfig {})?,
         }))?;
     Ok(balance.base_apr.into())
+}
+
+pub fn query_total_deposit_and_borrow(
+    deps: Deps,
+    _env: Env,
+) -> StdResult<DepositAndBorrowResponse> {
+    let config = read_config(deps.storage)?;
+
+    let epochstate: MarketEpochStateResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: config.market_contract.clone(),
+            msg: to_binary(&MarketExternalMsg::EpochState {
+                block_height: _env.block.height,
+                distributed_interest: Uint256::zero(),
+            })?,
+        }))?;
+
+    let state: MarketStateResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: config.market_contract.clone(),
+        msg: to_binary(&MarketExternalMsg::State {
+            block_height: Some(_env.block.height),
+        })?,
+    }))?;
+
+    let deposit: Uint256 = epochstate.aterra_supply * epochstate.exchange_rate;
+    let borrow: Decimal256 = state.total_liabilities;
+
+    Ok(DepositAndBorrowResponse {
+        deposit: deposit,
+        borrow: borrow,
+    })
 }
