@@ -3,21 +3,14 @@
   "title": "InstantiateMsg",
   "type": "object",
   "required": [
-    "anc_emission_rate",
     "max_borrow_factor",
     "orchai_code_id",
+    "orchai_epb_rate",
+    "orchai_token",
     "owner_addr",
     "stable_addr"
   ],
   "properties": {
-    "anc_emission_rate": {
-      "description": "Anchor token distribution speed",
-      "allOf": [
-        {
-          "$ref": "#/definitions/Decimal256"
-        }
-      ]
-    },
     "max_borrow_factor": {
       "description": "Maximum allowed borrow rate over deposited stable balance",
       "allOf": [
@@ -31,6 +24,17 @@
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
+    },
+    "orchai_epb_rate": {
+      "description": "Anchor token distribution speed",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Decimal256"
+        }
+      ]
+    },
+    "orchai_token": {
+      "$ref": "#/definitions/HumanAddr"
     },
     "owner_addr": {
       "description": "Owner address for config update",

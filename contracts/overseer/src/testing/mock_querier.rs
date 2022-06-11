@@ -249,7 +249,7 @@ impl WasmMockQuerier {
                                     global_interest_index: Decimal256::from_str("1000000.0")
                                         .unwrap(),
                                     global_reward_index: Decimal256::zero(),
-                                    anc_emission_rate: Decimal256::zero(),
+                                    orchai_epb_rate: Decimal256::zero(),
                                     prev_aterra_supply: Uint256::zero(),
                                     prev_exchange_rate: Decimal256::zero(),
                                 })))

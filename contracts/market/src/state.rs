@@ -23,6 +23,7 @@ pub struct Config {
     pub collector_contract: CanonicalAddr,
     pub distributor_contract: CanonicalAddr,
     pub stable_addr: CanonicalAddr,
+    pub orchai_token: CanonicalAddr,
     pub max_borrow_factor: Decimal256,
 }
 
@@ -34,7 +35,7 @@ pub struct State {
     pub last_reward_updated: u64,
     pub global_interest_index: Decimal256,
     pub global_reward_index: Decimal256,
-    pub anc_emission_rate: Decimal256,
+    pub orchai_epb_rate: Decimal256,
     pub prev_aterra_supply: Uint256,
     pub prev_exchange_rate: Decimal256,
 }

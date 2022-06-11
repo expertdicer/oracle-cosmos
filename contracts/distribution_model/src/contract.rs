@@ -106,7 +106,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             target_deposit_rate,
             threshold_deposit_rate,
             current_emission_rate,
-        } => to_binary(&query_anc_emission_rate(
+        } => to_binary(&query_orchai_epb_rate(
             deps,
             deposit_rate,
             target_deposit_rate,
@@ -129,7 +129,7 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     Ok(resp)
 }
 
-fn query_anc_emission_rate(
+fn query_orchai_epb_rate(
     deps: Deps,
     deposit_rate: Decimal256,
     target_deposit_rate: Decimal256,
