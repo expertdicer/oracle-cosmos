@@ -14,4 +14,7 @@ pub enum ContractError {
 
     #[error("exceed amout")]
     ExceedAmout {},
+    
+    #[error("Missing Withdraw Collateral Hook")]
+    MissingWithdrawCollateralHook {},
 }
